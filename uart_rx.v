@@ -3,8 +3,8 @@ module uart_rx (
     input  wire       rst_n,
     input  wire       rx,
     output reg  [7:0] data,
-    output wire       valid,       // импульс при приёме байта
-    output reg        error        // ошибка стоп-бита (не используется)
+    output wire       valid,       // impuls pri prieme baita
+    output reg        error        // oshibka stop bita (ne ispolzuem)
 );
 
     localparam BAUD_RATE = 115200;
@@ -23,7 +23,7 @@ module uart_rx (
 
     assign valid = valid_reg;
 
-    // Синхронизация и детектор спада
+    // Sinhronizacia i detektor spada
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             rx_sync1 <= 1;
@@ -33,7 +33,7 @@ module uart_rx (
         end else begin
             rx_sync1 <= rx;
             rx_sync2 <= rx_sync1;
-            rx_falling <= rx_sync2 & ~rx_sync1; // детектор 1→0
+            rx_falling <= rx_sync2 & ~rx_sync1; // detektor 1→0
         end
     end
 
@@ -47,7 +47,7 @@ module uart_rx (
             error_reg <= 0;
             data <= 0;
         end else begin
-            valid_reg <= 0; // импульс на один такт
+            valid_reg <= 0; // impuls na odin takt
 
             if (!receiving) begin
                 if (rx_falling) begin
@@ -58,9 +58,9 @@ module uart_rx (
             end else begin
                 baud_cnt <= baud_cnt + 1;
                 if (baud_cnt == BAUD_CNT/2) begin
-                    // середина бита — выборка
+                    // seredina bita — viborka
                     if (bit_cnt == 0) begin
-                        // стартовый бит – должен быть 0, не проверяем
+                        // startovii bit – dolgen bit 0, ne proveraem
                     end else if (bit_cnt >= 1 && bit_cnt <= 8) begin
                         shift_reg <= {rx_sync2, shift_reg[8:1]};
                        // parity <= rx_sync2;
