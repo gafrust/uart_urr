@@ -1,9 +1,9 @@
 module uart_tx (
     input  wire       clk,
     input  wire       rst_n,
-    input  wire       start,      // импульс на отправку
-    input  wire [7:0] data,       // байт для отправки
-    output wire       busy,       // 1 – идёт передача
+    input  wire       start,      // impuls na otpravku
+    input  wire [7:0] data,       // bait dla otpravki
+    output wire       busy,       // 1 – idet peredacha
     output wire       tx
 );
 
@@ -30,7 +30,7 @@ module uart_tx (
         end else begin
             if (start && !busy_reg) begin
                 busy_reg <= 1;
-                tx_reg <= 0;          // стартовый бит
+                tx_reg <= 0;          // startovii bit
                 shift_reg <= data;
                 parity <= ^data;
                 bit_cnt <= 0;
@@ -41,7 +41,7 @@ module uart_tx (
                     baud_cnt <= 0;
                     bit_cnt <= bit_cnt + 1;
                     if (bit_cnt == 0) begin
-                        // стартовый бит уже отправлен, дальше данные
+                        // startovii bit uge otpravlen, dalshe dannie
                         tx_reg <= shift_reg[0];
                         shift_reg <= shift_reg >> 1;
                     end else if (bit_cnt >= 1 && bit_cnt <= 8) begin
@@ -49,11 +49,11 @@ module uart_tx (
                         tx_reg <= shift_reg[0];
                         shift_reg <= shift_reg >> 1;
                     end else if (bit_cnt == 9) begin
-                        tx_reg <= parity; // бит паритета
+                        tx_reg <= parity; // bit pariteta
                     end else if (bit_cnt == 10) begin
                         tx_reg <= 1; // стоп-бит
                     end else if (bit_cnt == 11) begin
-                        busy_reg <= 0; // завершено
+                        busy_reg <= 0; // zaversheno
                     end
                 end
             end

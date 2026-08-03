@@ -5,7 +5,7 @@ module tb_uart_top;
     localparam CLK_PERIOD = 20;
     localparam BAUD_CNT   = 50_000_000 / 115200; // 434
 
-    logic        clk, rst_n, start;
+    logic        sys_clk, rst_n, start, led;
     logic [7:0]  cmd;
     logic        tx, rx;
     wire [23:0] freq, freq_;
@@ -21,8 +21,8 @@ module tb_uart_top;
 
     // ---- Generator taktov ----
     initial begin
-        clk = 0;
-        forever #(CLK_PERIOD/2) clk = ~clk;
+        sys_clk = 0;
+        forever #(CLK_PERIOD/2) sys_clk = ~sys_clk;
     end
 
     // ---- Chtenie iz faila  fscanf (po odnomu 32-bitnomu hex-chislu) ----
@@ -86,7 +86,7 @@ module tb_uart_top;
 
 
 
-       always @(posedge clk) begin
+       always @(posedge sys_clk) begin
         if (done) begin 
                $display("done detected at %t, freq= %d", $time, freq);
               end
@@ -108,22 +108,22 @@ module tb_uart_top;
 
     for (cmd_idx = 0; cmd_idx < num_cmds; cmd_idx = cmd_idx + 1) begin
     cmd = cmd_idx + 1;
-    @(posedge clk);
+    @(posedge sys_clk);
     start = 1;
-    @(posedge clk);
+    @(posedge sys_clk);
     start = 0;
 
     wait (u_top.u_tx.busy == 0);
-    repeat (10) @(posedge clk);//#(CLK_PERIOD * 10);
+    repeat (10) @(posedge sys_clk);//#(CLK_PERIOD * 10);
 
     send_byte(expected_resp[cmd_idx][31:24]);
     send_byte(expected_resp[cmd_idx][23:16]);
     send_byte(expected_resp[cmd_idx][15:8]);
     send_byte(expected_resp[cmd_idx][7:0]);
-    @(posedge clk);
+    @(posedge sys_clk);
   
 
-    #(CLK_PERIOD * 1000);
+    #(CLK_PERIOD * 100000);
      end
 
 
@@ -133,7 +133,7 @@ module tb_uart_top;
         $finish;
     end
 
-    always @(posedge clk) begin
+    always @(posedge sys_clk) begin
         if (error) $display("Error at time %t", $time);
     end
 
