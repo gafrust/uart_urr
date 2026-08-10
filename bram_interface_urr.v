@@ -14,6 +14,11 @@ module bram_interface_urr (
     
     // Outputs to user logic
     output reg         module_enable,
+
+     // ----- НОВЫЕ ПОРТЫ ДЛЯ CRC -----
+    input  wire [31:0] crc_result_i,   // ot urr_crc
+    input  wire        crc_done_i,     // ot urr_crc
+    output reg         start_crc,     // impuls zapuska for urr_crc
     
     
     // UART interface
@@ -32,6 +37,9 @@ module bram_interface_urr (
     localparam ADDR_UART_RESULT = 8'h0C;   // 0x0C – UART result (read)
     localparam ADDR_UART_STATUS = 8'h10;   // 0x10 – UART status (read)
 
+    localparam ADDR_CRC_RESULT  = 8'h14;   // rezultat CRC (chtenie)
+    localparam ADDR_CRC_STATUS  = 8'h1C;   // status CRC (chtenie)
+    localparam ADDR_CRC_START   = 8'h20;   // zapis suda generiruet impuls starta
     //-----------------------------------------------------------------
     // Internal registers
     //-----------------------------------------------------------------
@@ -43,6 +51,11 @@ module bram_interface_urr (
     reg        uart_error_flag;
     reg        uart_start_pulse;
     reg        axi_vd_reg;
+
+
+    reg [31:0] reg_crc_result;   // hranit poslednii vicheslennii CRC
+    reg        crc_done_flag;    // flag gotovnosti CRC
+    reg        start_crc_pulse;  // vnutrennii impuls
 
     //-----------------------------------------------------------------
     // Output assignments
@@ -62,8 +75,12 @@ module bram_interface_urr (
             uart_start_pulse <= 1'b0;
             axi_vd_reg      <= 1'b0;
             axi_data_o      <= 32'd0;
+            reg_crc_result <= 32'd0;
+            crc_done_flag  <= 1'b0;
+            start_crc_pulse <= 1'b0;
         end else begin
             axi_vd_reg <= 1'b0;   // default
+            start_crc_pulse <= 1'b0;
 
             // ---- Generate UART start pulse on write to ADDR_CMD ----
             uart_start_pulse <= 1'b0;
@@ -80,32 +97,29 @@ module bram_interface_urr (
             if (axi_en_i) begin
                 if (axi_we_i) begin
                     // Write
-                    if (axi_addr_i[7:0] == ADDR_CTRL)
-                        reg_ctrl <= axi_data_i;
+                     case (axi_addr_i[7:0])
+                        ADDR_CTRL: reg_ctrl <= axi_data_i;
+                        ADDR_CMD:  reg_cmd  <= axi_data_i;
+                        ADDR_CRC_START: begin
+                          // Generiruem impuls zapuska
+                          start_crc_pulse <= 1'b1;
+                         // Sbros flagov pered novim zapuskom
+                         crc_done_flag  <= 1'b0;
+                         reg_crc_result <= 32'd0;
+                        end
+                     endcase
                 end else begin
                     // Read
                     case (axi_addr_i[7:0])
-                        ADDR_CTRL: begin
-                            axi_data_o <= reg_ctrl;
-                            axi_vd_reg <= 1'b1;
-                        end
-                        ADDR_CMD: begin
-                            axi_data_o <= reg_cmd;
-                            axi_vd_reg <= 1'b1;
-                        end
-                        ADDR_UART_RESULT: begin
-                            axi_data_o <= reg_uart_result;
-                            axi_vd_reg <= 1'b1;
-                        end
-                        ADDR_UART_STATUS: begin
-                            axi_data_o <= {30'b0, uart_error_flag, uart_done_flag};
-                            axi_vd_reg <= 1'b1;
-                        end
-                        default: begin
-                            axi_data_o <= 32'd0;
-                            axi_vd_reg <= 1'b0;
-                        end
+                        ADDR_CTRL: begin axi_data_o <= reg_ctrl; axi_vd_reg <= 1'b1; end
+                        ADDR_CMD:  begin axi_data_o <= reg_cmd; axi_vd_reg <= 1'b1; end
+                        ADDR_UART_RESULT: begin axi_data_o <= reg_uart_result; axi_vd_reg <= 1'b1; end
+                        ADDR_UART_STATUS: begin axi_data_o <= {30'b0, uart_error_flag, uart_done_flag}; axi_vd_reg <= 1'b1; end
+                        ADDR_CRC_RESULT:  begin axi_data_o <= reg_crc_result; axi_vd_reg <= 1'b1; end
+                        ADDR_CRC_STATUS:  begin axi_data_o <= {30'b0, 1'b0, crc_done_flag}; axi_vd_reg <= 1'b1; end
+                        default: begin axi_data_o <= 32'd0; axi_vd_reg <= 1'b0; end
                     endcase
+                    
                 end
             end
 
@@ -120,9 +134,22 @@ module bram_interface_urr (
                 uart_done_flag  <= 1'b0;
             end
 
+            // ---- Защёлка результата CRC по сигналу crc_done_i ----
+            if (crc_done_i) begin
+            reg_crc_result <= crc_result_i;
+            crc_done_flag  <= 1'b1;
+            end
             
         end
     end
+
+
+     always @(posedge clk_i or posedge rst_i) begin
+         if (rst_i) start_crc <= 1'b0;
+         else start_crc <= start_crc_pulse;
+         end
+
+
 
     //-----------------------------------------------------------------
     // Control outputs

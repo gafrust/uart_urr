@@ -50,6 +50,11 @@ vlog  +define+__XILINX_SIMULATOR__ +incdir+$path_icnl2 +incdir+$path_icnl  -repo
 vlog  +define+__XILINX_SIMULATOR__ +incdir+$path_icnl2 +incdir+$path_icnl  -reportprogress 300 -work work ../../rtl/uart_rx.v
 vlog  +define+__XILINX_SIMULATOR__ +incdir+$path_icnl2 +incdir+$path_icnl  -reportprogress 300 -work work ../../rtl/urr.v
 vlog  +define+__XILINX_SIMULATOR__ +incdir+$path_icnl2 +incdir+$path_icnl  -reportprogress 300 -work work ../../rtl/uart_top.v
+vlog  +define+__XILINX_SIMULATOR__ +incdir+$path_icnl2 +incdir+$path_icnl  -reportprogress 300 -work work ../../rtl/bram_interface_urr.v
+vlog  +define+__XILINX_SIMULATOR__ +incdir+$path_icnl2 +incdir+$path_icnl  -reportprogress 300 -work work ../../rtl/crc_module.v
+vlog  +define+__XILINX_SIMULATOR__ +incdir+$path_icnl2 +incdir+$path_icnl  -reportprogress 300 -work work ../../rtl/fifo_200.v
+vlog  +define+__XILINX_SIMULATOR__ +incdir+$path_icnl2 +incdir+$path_icnl  -reportprogress 300 -work work ../../rtl/urr_crc.v
+vlog  +define+__XILINX_SIMULATOR__ +incdir+$path_icnl2 +incdir+$path_icnl  -reportprogress 300 -work work ../../rtl/crc_wrapper.v
 
 
 

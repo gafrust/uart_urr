@@ -17,6 +17,8 @@ add wave -noupdate /tb_uart_top/rx
 add wave -noupdate /tb_uart_top/freq
 add wave -noupdate /tb_uart_top/done
 add wave -noupdate /tb_uart_top/error
+add wave -noupdate /tb_uart_top/crc_byte
+add wave -noupdate /tb_uart_top/crc_test_active
 
 
 # -------------------- Внутренние сигналы тестируемого модуля (dut) --------------------
@@ -38,8 +40,15 @@ add wave -noupdate -group "UART_RX" /tb_uart_top/u_top/u_rx/*
 # Группа для управляющего модуля URR
 add wave -noupdate -group "URR" /tb_uart_top/u_top/u_urr/*
 
-#add wave -noupdate -group "URR" /tb_uart_top/u_top/u_urr/state
-#add wave -noupdate -group "URR" /tb_uart_top/u_top/u_urr/nextstate
+# Группа для управляющего модуля bram
+add wave -noupdate -group "bram" /tb_uart_top/u_top/bram/*
+
+# Группа для управляющего модуля urr_crc
+add wave -noupdate -group "urr_crc" /tb_uart_top/u_top/u_urr_crc/*
+
+add wave -noupdate /tb_uart_top/u_top/u_urr_crc/u_fifo/mem;
+
+add wave -noupdate /tb_uart_top/u_top/u_urr_crc/collect_start_delay
 
 
 # -------------------- Настройки отображения --------------------
