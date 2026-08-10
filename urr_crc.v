@@ -15,7 +15,7 @@ module urr_crc (
     output wire        crc_running
 );
 
-    // Состояния
+    // State
     localparam IDLE     = 3'd0,
                SEND     = 3'd1,
                WAIT_RX  = 3'd2,
@@ -119,9 +119,7 @@ module urr_crc (
             if (fifo_rd_en) begin
                 fifo_rd_data_reg <= fifo_rd_data;
                 crc_update_pending <= 1'b1;
-                //rd_valid <= 1'b1;
-            //end else begin
-               // rd_valid <= 1'b0;
+                
             end
             
             
@@ -163,15 +161,12 @@ module urr_crc (
                 end
 
                 COLLECT: begin
-                   // if(fifo_rd_en) 
-                   // if (crc_update_pending) begin
                         crc_reg   <= 32'hF5F5F5F5;
                         fifo_rd_en_st <=1;
                         $display("COLLECT: read_cnt=%0d, data=0x%02h, crc_in=0x%08h, crc_out=0x%08h", read_cnt, fifo_rd_data, crc_reg, crc_out);
                         read_cnt <= read_cnt + 1;
                         crc_reg <= crc_out;
                         crc_update_pending <= 1'b0;
-                   // end
                 end
 
                

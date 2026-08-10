@@ -21,6 +21,8 @@ module uart_top (
     wire       rx_valid;
     wire [7:0] rx_data;
     wire       rx_error;
+    wire       rst;
+    wire       module_enable;
 
     // Signali megdu bram_interface_urr и urr
     wire        start;
@@ -36,7 +38,8 @@ module uart_top (
     wire        crc_done;
     wire        crc_running;
    
-
+    //Vkluchenie
+    assign rst = module_enable? rst_n : 1'b0; //module_enable
 
     // ---- Svetodiot ----
     reg [31:0] led_cnt;
@@ -66,7 +69,7 @@ module uart_top (
     // ---- Instansi modulei ----
     uart_tx u_tx (
         .clk   (sys_clk),
-        .rst_n (rst_n),
+        .rst_n (rst),
         .start (tx_start),
         .data  (tx_data),
         .busy  (tx_busy),
@@ -75,7 +78,7 @@ module uart_top (
 
     uart_rx u_rx (
         .clk   (sys_clk),
-        .rst_n (rst_n),
+        .rst_n (rst),
         .rx    (rx),
         .data  (rx_data),
         .valid (rx_valid),
@@ -86,7 +89,7 @@ module uart_top (
         // Instans urr_crc
     urr_crc u_urr_crc (
         .clk       (sys_clk),
-        .rst_n     (rst_n),
+        .rst_n     (rst),
         .start_crc  (start_crc_impulse),
        // .crc_enable(crc_mode_enable),   // из bram (бит 2 reg_ctrl)
         .rx_valid  (rx_valid),
@@ -107,7 +110,7 @@ module uart_top (
 
     urr u_urr (
         .clk      (sys_clk),
-        .rst_n    (rst_n),
+        .rst_n    (rst),
         .start    (start),
         .cmd      (cmd),
         .tx_busy  (tx_busy),
@@ -125,7 +128,7 @@ module uart_top (
 
     bram_interface_urr bram (
         .clk_i    (sys_clk),
-        .rst_i    (~rst_n),          // если rst_i активен высоким уровнем
+        .rst_i    (rst_n),          // если rst_i активен высоким уровнем
         // AXI
         .axi_en_i   (axi_en_i),
         .axi_data_i (axi_data_i),
@@ -140,7 +143,7 @@ module uart_top (
         .uart_error (error),
         .uart_freq  (freq),
         
-        .module_enable (),
+        .module_enable (module_enable),
         .start_crc(start_crc_impulse),   // vihod impulsa
 
         .crc_result_i(crc_result),   // от urr_crc
