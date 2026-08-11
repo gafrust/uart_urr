@@ -15,10 +15,10 @@ module urr (
     output reg  [23:0] freq,
     output reg         done,
     output reg         error,
-    output wire        dir,   // Upravlaushii vivod for RE DE max487 
+    output wire        dir   // Upravlaushii vivod for RE DE max487 
 
-    input  wire       flag_crc,        // novii vhod
-    output reg  [31:0] crc_result      // finalnoe CRC (opcionalno)
+    // input  wire       flag_crc,        // novii vhod
+    // output reg  [31:0] crc_result      // finalnoe CRC (opcionalno)
 );
 
     localparam TIMEOUT_LIMIT = 250000; // 5 ms pri 50 Mhz
@@ -120,7 +120,7 @@ end
             dir_reg      <= 1'b0;
             rx_pending <= 1'b0;
             crc_reg <= 32'hF5F5F5F5;   // nachalnoe znachenie for CRC32
-            crc_result <= 32'd0;
+            //crc_result <= 32'd0;
             //rx_data_latch <= 8'd0;
         end else begin
             // Sbros impulsnih vihodov po umolchaniu
@@ -203,9 +203,9 @@ end
                 DONE: begin
                     freq <= freq_reg;
                     done <= 1'b1;
-                    if (flag_crc) begin
-                    crc_result <= crc_reg ^ 32'hFFFFFFFF; //crc_result <= crc_reg;   // сохраняем CRC
-                    end
+                    // if (flag_crc) begin
+                    // crc_result <= crc_reg ^ 32'hFFFFFFFF; //crc_result <= crc_reg;   // сохраняем CRC
+                    // end
                     // Sbros registrov dla sledujuchego zapuska
                     byte_cnt    <= 2'd0;
                     freq_reg    <= 32'd0;

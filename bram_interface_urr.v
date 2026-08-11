@@ -26,7 +26,8 @@ module bram_interface_urr (
     output reg  [7:0]  uart_cmd,
     input  wire        uart_done,
     input  wire        uart_error,
-    input  wire [23:0] uart_freq
+    input  wire [23:0] uart_freq,
+    input  wire        crc_match
 );
 
     //-----------------------------------------------------------------
@@ -56,6 +57,7 @@ module bram_interface_urr (
     reg [31:0] reg_crc_result;   // hranit poslednii vicheslennii CRC
     reg        crc_done_flag;    // flag gotovnosti CRC
     reg        start_crc_pulse;  // vnutrennii impuls
+    reg        crc_match_flag;
 
     //-----------------------------------------------------------------
     // Output assignments
@@ -77,6 +79,7 @@ module bram_interface_urr (
             axi_data_o      <= 32'd0;
             reg_crc_result <= 32'd0;
             crc_done_flag  <= 1'b0;
+            crc_match_flag <= 1'b0;
             start_crc_pulse <= 1'b0;
         end else begin
             axi_vd_reg <= 1'b0;   // default
@@ -116,7 +119,7 @@ module bram_interface_urr (
                         ADDR_UART_RESULT: begin axi_data_o <= reg_uart_result; axi_vd_reg <= 1'b1; end
                         ADDR_UART_STATUS: begin axi_data_o <= {30'b0, uart_error_flag, uart_done_flag}; axi_vd_reg <= 1'b1; end
                         ADDR_CRC_RESULT:  begin axi_data_o <= reg_crc_result; axi_vd_reg <= 1'b1; end
-                        ADDR_CRC_STATUS:  begin axi_data_o <= {30'b0, 1'b0, crc_done_flag}; axi_vd_reg <= 1'b1; end
+                        ADDR_CRC_STATUS:  begin axi_data_o <= {30'b0, crc_match_flag, crc_done_flag}; axi_vd_reg <= 1'b1; end
                         default: begin axi_data_o <= 32'd0; axi_vd_reg <= 1'b0; end
                     endcase
                     
@@ -138,6 +141,12 @@ module bram_interface_urr (
             if (crc_done_i) begin
             reg_crc_result <= crc_result_i;
             crc_done_flag  <= 1'b1;
+            end
+
+
+            // ---- Защёлка результата CRC по сигналу crc_done_i ----
+            if (crc_match) begin
+            crc_match_flag <= 1'b1;
             end
             
         end

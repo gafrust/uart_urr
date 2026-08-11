@@ -37,6 +37,7 @@ module uart_top (
     wire [31:0] crc_result;
     wire        crc_done;
     wire        crc_running;
+    wire        crc_match;
    
     //Vkluchenie
     assign rst = module_enable? rst_n : 1'b0; //module_enable
@@ -96,13 +97,13 @@ module uart_top (
         .rx_data   (rx_data),
         .rx_error  (rx_error),
         .tx_busy   (tx_busy),
-        .urr_done  (done),
         .urr_error (error),
         .start_urr (start_urr),
         .cmd_urr   (cmd_urr),
         .crc_result(crc_result),
         .crc_done  (crc_done),
-        .crc_running(crc_running)
+        .crc_running(crc_running),
+        .crc_match(crc_match)           // 1 – если вычисленное CRC совпадает с принятым
     );
 
 
@@ -121,9 +122,9 @@ module uart_top (
         .rx_error (rx_error_to_urr),
         .freq     (freq),
         .done     (done),
-        .error    (error),
-        .flag_crc(),
-        .crc_result()
+        .error    (error)
+        // .flag_crc(),
+        // .crc_result()
     );
 
     bram_interface_urr bram (
@@ -147,7 +148,8 @@ module uart_top (
         .start_crc(start_crc_impulse),   // vihod impulsa
 
         .crc_result_i(crc_result),   // от urr_crc
-        .crc_done_i(crc_done)    // от urr_crc
+        .crc_done_i(crc_done),    // от urr_crc
+        .crc_match(crc_match)
     
     );
 
