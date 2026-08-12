@@ -108,6 +108,7 @@ module bram_interface_urr (
                           start_crc_pulse <= 1'b1;
                           // Sbros flagov pered novim zapuskom
                           crc_done_flag  <= 1'b0;
+                          crc_match_flag <= 1'b0;
                           reg_crc_result <= 32'd0;
                         end
                      endcase

@@ -30,6 +30,7 @@ add wave -noupdate /tb_uart_top/u_top/timer_cnt
 add wave -noupdate /tb_uart_top/u_top/tx_start
 add wave -noupdate /tb_uart_top/u_top/timer_done;     
 add wave -noupdate /tb_uart_top/u_top/tx_busy_prev;
+add wave -noupdate /tb_uart_top/u_top/rst;
 
 # Группа для UART передатчика
 add wave -noupdate -group "UART_TX" /tb_uart_top/u_top/u_tx/*
@@ -45,6 +46,9 @@ add wave -noupdate -group "bram" /tb_uart_top/u_top/bram/*
 
 # Группа для управляющего модуля urr_crc
 add wave -noupdate -group "urr_crc" /tb_uart_top/u_top/u_urr_crc/*
+
+# Группа для управляющего модуля fifo
+add wave -noupdate -group "fifo" /tb_uart_top/u_top/u_urr_crc/u_fifo/*
 
 add wave -noupdate /tb_uart_top/u_top/u_urr_crc/u_fifo/mem;
 

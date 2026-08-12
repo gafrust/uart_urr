@@ -27,13 +27,16 @@ module fifo #(
 
     // Write and read pointer update
     always @(posedge clk or posedge rst) begin
-        if (rst) begin
+        if (!rst) begin
             wr_ptr <= 0;
             rd_ptr <= 0;
             cnt    <= 0;
             rd_data <= 0; 
             // rd_data is not cleared, but will be overwritten on read
         end else begin
+
+            if(rd_ptr==200) rd_ptr <=0;
+            if(wr_ptr==200) wr_ptr <=0;
             case ({wr_en, rd_en})
                 2'b10: begin // write only
                     if (!full) begin
