@@ -1,63 +1,63 @@
 module uart_top (
     input  wire       sys_clk,      // 50 Mhz
     input  wire       rst_n,
-    output wire       tx,           // UART TX
-    input  wire       rx,           // UART RX
-    output wire       led,          // svetodiod
+   (* IOB = "TRUE" *) output wire       tx,           // UART TX
+   (* IOB = "TRUE" *) input  wire       rx,           // UART RX
+   (* IOB = "TRUE" *) output wire       led,          // svetodiod
 
     // AXI BRAM interface (podkluchenie k bram_interface_urr)
-    input  wire        axi_en_i,
-    input  wire [31:0] axi_data_i,
-    input  wire        axi_we_i,
-    input  wire [31:0] axi_addr_i,
-    output wire        axi_vd_o,
-    output wire [31:0] axi_data_o
+    (* DONT_TOUCH = "yes" *) input  wire        axi_en_i,
+    (* DONT_TOUCH = "yes" *) input  wire [31:0] axi_data_i,
+    (* DONT_TOUCH = "yes" *) input  wire        axi_we_i,
+    (* DONT_TOUCH = "yes" *) input  wire [31:0] axi_addr_i,
+   (* DONT_TOUCH = "yes" *)  output wire        axi_vd_o,
+    (* DONT_TOUCH = "yes" *) output wire [31:0] axi_data_o
 );
 
     // ---- Vnutrennie signali ----
-    wire       tx_busy;
-    wire       tx_start;
-    wire [7:0] tx_data;
-    wire       rx_valid;
-    wire [7:0] rx_data;
-    wire       rx_error;
+    (* DONT_TOUCH = "yes" *) wire       tx_busy;
+    (* DONT_TOUCH = "yes" *) wire       tx_start;
+    (* DONT_TOUCH = "yes" *) wire [7:0] tx_data;
+    (* DONT_TOUCH = "yes" *) wire       rx_valid;
+    (* DONT_TOUCH = "yes" *) wire [7:0] rx_data;
+    (* DONT_TOUCH = "yes" *) wire       rx_error;
     wire       rst;
-    wire       module_enable;
+    (* DONT_TOUCH = "yes" *) wire       module_enable;
 
     // Signali megdu bram_interface_urr и urr
-    wire        start;
-    wire [7:0]  cmd;
-    wire        done;
-    wire        error;
-    wire [23:0] freq;
+   (* DONT_TOUCH = "yes" *) wire        start;
+   (* DONT_TOUCH = "yes" *) wire [7:0]  cmd;
+   (* DONT_TOUCH = "yes" *) wire        done;
+   (* DONT_TOUCH = "yes" *) wire        error;
+   (* DONT_TOUCH = "yes" *) wire [23:0] freq;
 
       
-    wire        start_bram, start_urr, start_crc_impulse ;
-    wire [7:0]  cmd_bram, cmd_urr;
-    wire [31:0] crc_result;
-    wire        crc_done;
-    wire        crc_running;
-    wire        crc_match;
+   (* DONT_TOUCH = "yes" *) wire        start_bram, start_urr, start_crc_impulse ;
+   (* DONT_TOUCH = "yes" *) wire [7:0]  cmd_bram, cmd_urr;
+   (* DONT_TOUCH = "yes" *) wire [31:0] crc_result;
+   (* DONT_TOUCH = "yes" *) wire        crc_done;
+   (* DONT_TOUCH = "yes" *) wire        crc_running;
+   (* DONT_TOUCH = "yes" *) wire        crc_match;
    
     //Vkluchenie
     assign rst = module_enable? rst_n : 1'b0; //module_enable
 
     // ---- Svetodiot ----
-    reg [31:0] led_cnt;
-    reg        led_reg;
+    (* DONT_TOUCH = "yes" *) reg [31:0] led_cnt;
+    (* DONT_TOUCH = "yes" *) reg        led_reg;
     assign led = led_reg;
 
-     reg rx_valid_delayed;
-     reg [7:0] rx_data_delayed;
+    (* DONT_TOUCH = "yes" *) reg rx_valid_delayed;
+    (* DONT_TOUCH = "yes" *) reg [7:0] rx_data_delayed;
 
 
 
 
 
     // ---- Signali for urr (maskiruyotsa v  CRC-regime) ----
-    wire        rx_valid_to_urr;
-    wire [7:0]  rx_data_to_urr;
-    wire        rx_error_to_urr;
+   (* DONT_TOUCH = "yes" *) wire        rx_valid_to_urr;
+   (* DONT_TOUCH = "yes" *) wire [7:0]  rx_data_to_urr;
+   (* DONT_TOUCH = "yes" *) wire        rx_error_to_urr;
 
     assign rx_valid_to_urr = crc_running ? 1'b0 : rx_valid;
     assign rx_data_to_urr  = crc_running ? 8'd0  : rx_data;
