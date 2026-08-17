@@ -3,7 +3,7 @@ module uart_top (
     input  wire       rst_n,
    (* IOB = "TRUE" *) output wire       tx,           // UART TX
    (* IOB = "TRUE" *) input  wire       rx,           // UART RX
-   (* IOB = "TRUE" *) output wire       led,          // svetodiod
+   (* DONT_TOUCH = "yes" *) output wire       led,          // svetodiod
 
     // AXI BRAM interface (podkluchenie k bram_interface_urr)
     (* DONT_TOUCH = "yes" *) input  wire        axi_en_i,
@@ -11,7 +11,8 @@ module uart_top (
     (* DONT_TOUCH = "yes" *) input  wire        axi_we_i,
     (* DONT_TOUCH = "yes" *) input  wire [31:0] axi_addr_i,
    (* DONT_TOUCH = "yes" *)  output wire        axi_vd_o,
-    (* DONT_TOUCH = "yes" *) output wire [31:0] axi_data_o
+    (* DONT_TOUCH = "yes" *) output wire [31:0] axi_data_o,
+    (* DONT_TOUCH = "yes" *) output wire  dir
 );
 
     // ---- Vnutrennie signali ----
@@ -40,7 +41,7 @@ module uart_top (
    (* DONT_TOUCH = "yes" *) wire        crc_match;
    
     //Vkluchenie
-    assign rst = module_enable? rst_n : 1'b0; //module_enable
+   // assign rst = module_enable? rst_n : 1'b1; //module_enable
 
     // ---- Svetodiot ----
     (* DONT_TOUCH = "yes" *) reg [31:0] led_cnt;
@@ -70,7 +71,7 @@ module uart_top (
     // ---- Instansi modulei ----
     uart_tx u_tx (
         .clk   (sys_clk),
-        .rst_n (rst),
+        .rst_n (~rst_n),
         .start (tx_start),
         .data  (tx_data),
         .busy  (tx_busy),
@@ -79,7 +80,7 @@ module uart_top (
 
     uart_rx u_rx (
         .clk   (sys_clk),
-        .rst_n (rst),
+        .rst_n (~rst_n),
         .rx    (rx),
         .data  (rx_data),
         .valid (rx_valid),
@@ -90,7 +91,7 @@ module uart_top (
         // Instans urr_crc
     urr_crc u_urr_crc (
         .clk       (sys_clk),
-        .rst_n     (rst),
+        .rst_n     (~rst_n),
         .start_crc  (start_crc_impulse),
        // .crc_enable(crc_mode_enable),   // из bram (бит 2 reg_ctrl)
         .rx_valid  (rx_valid),
@@ -111,7 +112,7 @@ module uart_top (
 
     urr u_urr (
         .clk      (sys_clk),
-        .rst_n    (rst),
+        .rst_n    (~rst_n),
         .start    (start),
         .cmd      (cmd),
         .tx_busy  (tx_busy),
@@ -122,14 +123,15 @@ module uart_top (
         .rx_error (rx_error_to_urr),
         .freq     (freq),
         .done     (done),
-        .error    (error)
+        .error    (error),
+        .dir      (dir)
         // .flag_crc(),
         // .crc_result()
     );
 
     bram_interface_urr bram (
         .clk_i    (sys_clk),
-        .rst_i    (rst_n),          // если rst_i активен высоким уровнем
+        .rst_i    (~rst_n),          // если rst_i активен высоким уровнем
         // AXI
         .axi_en_i   (axi_en_i),
         .axi_data_i (axi_data_i),

@@ -45,6 +45,8 @@ module urr (
     reg [31:0] crc_reg;
     wire [31:0] crc_out;
 
+    assign dir = tx_busy;//dir_reg;
+
 
 //    crc u_crc (
 //     .crcIn (crc_reg),
@@ -74,13 +76,12 @@ module urr (
                       next_state = ERROR_ST;
             end
             RX_DATA: begin
-                 if (byte_cnt == 2'd3)
-                  next_state = DONE;
-                 else
-                  next_state = RX_DATA;
-                 if (timeout_cnt >= TIMEOUT_LIMIT)
-                  next_state = ERROR_ST;
-end
+               if (byte_cnt == 2'd3)
+                next_state = DONE;
+               else
+                next_state = RX_DATA;
+               end
+
             DONE: begin
                 next_state = IDLE;
             end
@@ -161,44 +162,69 @@ end
                 end
 
                 RX_DATA: begin
-                    if (rx_pending) begin
-                        // Sbros taimauta
-                        timeout_cnt <= 32'd0;
-                        // if (flag_crc) begin
-                        //       crc_reg <= crc_out;
-                        // end else begin
-                        // Sohranaem bait v freq_reg (MSB first)
-                            case (byte_cnt)
-                                2'd0: begin
-                                      if(byte_cnt == rx_data_latch[7:6]) freq_reg[5:0]   <= rx_data_latch[5:0]; else error <= 1'b1; 
-                                      //$display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
-                                      end
-                                2'd1: begin
-                                      if(byte_cnt == rx_data_latch[7:6]) freq_reg[11:6]  <= rx_data_latch[5:0]; else error <= 1'b1;
-                                      //$display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
-                                      end
-                                2'd2: begin
-                                      if(byte_cnt == rx_data_latch[7:6]) freq_reg[17:12] <= rx_data_latch[5:0]; else error <= 1'b1;
-                                      //$display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
-                                      end
-                                2'd3: begin
-                                      if(byte_cnt == rx_data_latch[7:6]) freq_reg[23:18] <= rx_data_latch[5:0]; else error <= 1'b1;
-                                     // $display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
-                                      end
-                            endcase
-                       // end
-                        // Uvelichivaem schetchik, esli eto ne  4-i bait
-                        // if (byte_cnt < 2'd3)
-                        //     byte_cnt <= byte_cnt + 1;
-                          rx_pending <= 1'b0;
-                    end else begin
+               if (rx_pending) begin
+                         timeout_cnt <= 32'd0;
+                       // проверка порядка (опционально)
+                      if (byte_cnt != rx_data_latch[7:6]) error <= 1'b1;
+                       // запись в freq_reg
+                      case (byte_cnt)
+                             2'd0: freq_reg[5:0]  <= rx_data_latch[5:0];
+                             2'd1: freq_reg[11:6] <= rx_data_latch[5:0];
+                             2'd2: freq_reg[17:12]<= rx_data_latch[5:0];
+                             2'd3: freq_reg[23:18]<= rx_data_latch[5:0];
+                      endcase
+                       // увеличиваем счётчик, если это не последний байт
                         if (byte_cnt < 2'd3)
                             byte_cnt <= byte_cnt + 1;
-                        // Schitaem timeout, esli net baita
+                       // сброс pending
+                            rx_pending <= 1'b0;
+                        end else begin
+                      // таймаут, если нет данных
                         if (timeout_cnt < TIMEOUT_LIMIT)
-                            timeout_cnt <= timeout_cnt + 1;
-                    end
+                             timeout_cnt <= timeout_cnt + 1;
+                        end
                 end
+
+
+
+                //     if (rx_pending) begin
+                //         // Sbros taimauta
+                //         timeout_cnt <= 32'd0;
+                //         // if (flag_crc) begin
+                //         //       crc_reg <= crc_out;
+                //         // end else begin
+                //         // Sohranaem bait v freq_reg (MSB first)
+                //             case (byte_cnt)
+                //                 2'd0: begin
+                //                       if(byte_cnt == rx_data_latch[7:6]) freq_reg[5:0]   <= rx_data_latch[5:0]; else error <= 1'b1; 
+                //                       //$display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
+                //                       end
+                //                 2'd1: begin
+                //                       if(byte_cnt == rx_data_latch[7:6]) freq_reg[11:6]  <= rx_data_latch[5:0]; else error <= 1'b1;
+                //                       //$display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
+                //                       end
+                //                 2'd2: begin
+                //                       if(byte_cnt == rx_data_latch[7:6]) freq_reg[17:12] <= rx_data_latch[5:0]; else error <= 1'b1;
+                //                       //$display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
+                //                       end
+                //                 2'd3: begin
+                //                       if(byte_cnt == rx_data_latch[7:6]) freq_reg[23:18] <= rx_data_latch[5:0]; else error <= 1'b1;
+                //                      // $display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
+                //                       end
+                //             endcase
+                //        // end
+                //         // Uvelichivaem schetchik, esli eto ne  4-i bait
+                //         // if (byte_cnt < 2'd3)
+                //         //     byte_cnt <= byte_cnt + 1;
+                //           rx_pending <= 1'b0;
+                //     end else begin
+                //         if (byte_cnt < 2'd3)
+                //             byte_cnt <= byte_cnt + 1;
+                //         // Schitaem timeout, esli net baita
+                //         if (timeout_cnt < TIMEOUT_LIMIT)
+                //             timeout_cnt <= timeout_cnt + 1;
+                //     end
+                // end
 
                 DONE: begin
                     freq <= freq_reg;

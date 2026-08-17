@@ -4,7 +4,7 @@ module uart_tx (
     input  wire       start,      // impuls na otpravku
     input  wire [7:0] data,       // bait dla otpravki
     output wire       busy,       // 1 – idet peredacha
-    output wire       tx
+    (* IOB = "TRUE" *) output wire       tx
 );
 
     localparam BAUD_RATE = 115200;
@@ -14,7 +14,7 @@ module uart_tx (
     reg [15:0] baud_cnt;
     reg [3:0] bit_cnt;
     reg [7:0] shift_reg;
-    reg tx_reg;
+    (* IOB = "TRUE" *) reg tx_reg;
     reg busy_reg;
     reg parity;
 

@@ -1,7 +1,7 @@
 module uart_rx (
     input  wire       clk,
     input  wire       rst_n,
-    input  wire       rx,
+   (* IOB = "TRUE" *) input  wire       rx,
     output reg  [7:0] data,
     output wire       valid,       // impuls pri prieme baita
     output reg        error        // oshibka stop bita (ne ispolzuem)

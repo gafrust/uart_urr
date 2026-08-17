@@ -67,7 +67,7 @@ module bram_interface_urr (
     //-----------------------------------------------------------------
     // Main logic
     //-----------------------------------------------------------------
-    always @(posedge clk_i or posedge rst_i) begin
+    always @(posedge clk_i or negedge rst_i) begin
         if (!rst_i) begin
             reg_ctrl        <= 32'd0;
             reg_cmd         <= 32'd0;
@@ -154,7 +154,7 @@ module bram_interface_urr (
     end
 
 
-     always @(posedge clk_i or posedge rst_i) begin
+     always @(posedge clk_i or negedge rst_i) begin
          if (!rst_i) start_crc <= 1'b0;
          else start_crc <= start_crc_pulse;
          end
@@ -164,7 +164,7 @@ module bram_interface_urr (
     //-----------------------------------------------------------------
     // Control outputs
     //-----------------------------------------------------------------
-    always @(posedge clk_i or posedge rst_i) begin
+    always @(posedge clk_i or negedge rst_i) begin
         if (!rst_i) begin
             module_enable <= 1'b0;
         end else begin
@@ -175,7 +175,7 @@ module bram_interface_urr (
     //-----------------------------------------------------------------
     // UART outputs (pulsed and latched)
     //-----------------------------------------------------------------
-    always @(posedge clk_i or posedge rst_i) begin
+    always @(posedge clk_i or negedge rst_i) begin
         if (!rst_i) begin
             uart_start <= 1'b0;
             uart_cmd   <= 8'd0;

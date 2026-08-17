@@ -11,7 +11,8 @@ module fifo #(
     output reg  [DATA_WIDTH-1:0]    rd_data,
     output wire                     full,
     output wire                     empty,
-    output wire [ $clog2(DEPTH) : 0] count   // chislo elementov v FIFO
+    //output wire [ $clog2(DEPTH) : 0] count   // chislo elementov v FIFO
+    output wire [7:0] count   // chislo elementov v FIFO
 );
 
     // Memory array
@@ -27,7 +28,7 @@ module fifo #(
 
     // Write and read pointer update
     always @(posedge clk or posedge rst) begin
-        if (!rst) begin
+        if (rst) begin
             wr_ptr <= 0;
             rd_ptr <= 0;
             cnt    <= 0;
