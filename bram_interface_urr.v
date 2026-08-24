@@ -38,7 +38,7 @@ module bram_interface_urr (
     localparam ADDR_UART_RESULT = 8'h0C;   // 0x0C – UART result (read)
     localparam ADDR_UART_STATUS = 8'h10;   // 0x10 – UART status (read)
 
-    localparam ADDR_CRC_RESULT  = 8'h14;   // rezultat CRC (chtenie)
+    localparam ADDR_CRC_RESULT  = 8'h14;   // rezultat CRC (poschitannoe)
     localparam ADDR_CRC_STATUS  = 8'h1C;   // status CRC (chtenie)
     localparam ADDR_CRC_START   = 8'h20;   // zapis suda generiruet impuls starta
     //-----------------------------------------------------------------

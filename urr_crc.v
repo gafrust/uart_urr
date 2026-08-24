@@ -6,12 +6,12 @@ module urr_crc (
     input  wire        rx_valid,
     input  wire [7:0]  rx_data,
     input  wire        rx_error,
-    input  wire        tx_busy,
+    (* DONT_TOUCH = "yes" *) input  wire        tx_busy,
     input  wire        urr_error,
     output reg         start_urr,
-    output reg  [7:0]  cmd_urr,
+   (* DONT_TOUCH = "yes" *) output reg  [7:0]  cmd_urr,
     output reg  [31:0] crc_result,         // вычисленное CRC (инвертированное)
-    output reg         crc_done,           // завершение всего процесса
+   (* DONT_TOUCH = "yes" *)  output reg         crc_done,           // завершение всего процесса
     output wire        crc_running,
     output reg         crc_match           // 1 – если вычисленное CRC совпадает с принятым
 );
@@ -30,18 +30,22 @@ module urr_crc (
                DONE_ST     = 4'd7,
                ERROR_ST    = 4'd8;
 
+    (* dont_touch = "true" *)
+    (* keep = "true" *)
+    (* fsm_encoding = "one_hot" *)
+    (* use_clock_enable = "false" *)
     reg [3:0] state, next_state;
 
     // ---- Счётчики и регистры для основного процесса ----
-    reg [5:0]  cmd_cnt;          // 1..50
-    reg [1:0]  byte_cnt;         // 0..3 для приёма ответов на команды 1..50
-    reg [7:0]  read_cnt;         // количество байт, прочитанных из FIFO (0..199)
-    reg [31:0] crc_reg;          // текущее вычисляемое CRC (неинвертированное)
+   (* DONT_TOUCH = "yes" *)(* use_clock_enable = "false" *) reg [5:0]  cmd_cnt;          // 1..50
+   (* DONT_TOUCH = "yes" *) reg [1:0]  byte_cnt;         // 0..3 для приёма ответов на команды 1..50
+   (* DONT_TOUCH = "yes" *) reg [7:0]  read_cnt;         // количество байт, прочитанных из FIFO (0..199)
+   (* DONT_TOUCH = "yes" *) reg [31:0] crc_reg;          // текущее вычисляемое CRC (неинвертированное)
     wire [31:0] crc_out;
 
     // ---- Счётчики и регистры для проверочной команды 0xFF ----
-    reg [1:0]  byte_cnt_255;     // 0..3 для приёма ответа на 0xFF
-    reg [31:0] crc_received;     // собранное CRC из 4 байт (уже инвертированное)
+   (* DONT_TOUCH = "yes" *) reg [1:0]  byte_cnt_255;     // 0..3 для приёма ответа на 0xFF
+   (* DONT_TOUCH = "yes" *) reg [31:0] crc_received;     // собранное CRC из 4 байт (уже инвертированное)
 
     // ---- FIFO сигналы ----
     wire        fifo_wr_en;
@@ -78,33 +82,72 @@ module urr_crc (
         .crcOut (crc_out)
     );
 
+
+//-----------------------------------------------------------------
+// Novii always blok for ustranenia ostanovki cmd_cnt
+//-----------------------------------------------------------------
+
+// ---- Счётчик команд (вынесен в отдельный блок) ----
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        cmd_cnt <= 6'd1;
+    end else begin
+        // Сброс в IDLE и DONE_ST
+        if (state == IDLE || state == DONE_ST) begin
+            cmd_cnt <= 6'd1;
+        end
+        // Инкремент только в WAIT_RX при получении последнего байта ответа
+        else if (state == WAIT_RX && rx_valid && byte_cnt == 2'd3 && cmd_cnt < 6'd50) begin
+            cmd_cnt <= cmd_cnt + 1;
+        end
+    end
+end
+
+
+
+
     // ------------------------------------------------------------
     // Комбинационная логика переходов
     // ------------------------------------------------------------
+     (* full_case, parallel_case *)
     always @(*) begin
         next_state = state;
         case (state)
-            IDLE: if (start_crc) next_state = SEND;
+            IDLE: begin
+                if (start_crc) next_state = SEND;
+                else next_state = IDLE; // Явно
+            end
 
-            SEND: if (!tx_busy) next_state = WAIT_RX;
+            SEND: begin
+                if (!tx_busy) next_state = WAIT_RX;
+                else next_state = SEND; // Явно
+            end
 
             WAIT_RX: begin
                 if (rx_error)
                     next_state = ERROR_ST;
                 else if (rx_valid) begin
-                    if (byte_cnt == 2'd3) begin
-                        if (cmd_cnt == 6'd50)
-                            next_state = COLLECT;
-                        else
-                            next_state = SEND;
-                    end else
+                      if (byte_cnt == 2'd3) begin
+                          if (cmd_cnt == 6'd50)
+                              next_state = COLLECT;
+                          else
+                              next_state = SEND;
+                      end else
                         next_state = WAIT_RX;
                 end
+                else
+                    next_state = WAIT_RX; // <--- Добавлено!
             end
 
-            COLLECT: if (read_cnt == 8'd200) next_state = SEND_255;
+            COLLECT: begin
+                if (read_cnt == 8'd200) next_state = SEND_255;
+                else next_state = COLLECT; // Явно
+            end
 
-            SEND_255: if (!tx_busy) next_state = WAIT_RX_255;
+            SEND_255: begin
+                if (!tx_busy) next_state = WAIT_RX_255;
+                else next_state = SEND_255; // Явно
+            end
 
             WAIT_RX_255: begin
                 if (rx_error)
@@ -115,6 +158,8 @@ module urr_crc (
                     else
                         next_state = WAIT_RX_255;
                 end
+                else
+                    next_state = WAIT_RX_255; // <--- Добавлено!
             end
 
             COMPARE: next_state = DONE_ST;
@@ -123,9 +168,58 @@ module urr_crc (
 
             ERROR_ST: next_state = IDLE;
 
-            default: next_state = IDLE;
+            default: next_state = IDLE; // Уберите эту строку, она вызывает сбои
         endcase
     end
+
+
+
+
+    // always @(*) begin
+    //     next_state = state;
+    //     case (state)
+    //         IDLE: if (start_crc) next_state = SEND;
+
+    //         SEND: if (!tx_busy) next_state = WAIT_RX;
+
+    //         WAIT_RX: begin
+    //             if (rx_error)
+    //                 next_state = ERROR_ST;
+    //             else if (rx_valid) begin
+    //                   if (byte_cnt == 2'd3) begin
+    //                       if (cmd_cnt == 6'd50)
+    //                           next_state = COLLECT;
+    //                       else
+    //                           next_state = SEND;
+    //                   end else
+    //                     next_state = WAIT_RX;
+    //             end
+    //         end
+
+    //         COLLECT: if (read_cnt == 8'd200) next_state = SEND_255;
+
+    //         SEND_255: if (!tx_busy) next_state = WAIT_RX_255;
+
+    //         WAIT_RX_255: begin
+    //             if (rx_error)
+    //                 next_state = ERROR_ST;
+    //             else if (rx_valid) begin
+    //                 if (byte_cnt_255 == 2'd3)
+    //                     next_state = COMPARE;
+    //                 else
+    //                     next_state = WAIT_RX_255;
+    //             end
+    //         end
+
+    //         COMPARE: next_state = DONE_ST;
+
+    //         DONE_ST: next_state = IDLE;
+
+    //         ERROR_ST: next_state = IDLE;
+
+    //         default: next_state = IDLE;
+    //     endcase
+    // end
 
     // ------------------------------------------------------------
     // Синхронная логика
@@ -162,7 +256,7 @@ module urr_crc (
             case (state)
                 IDLE: begin
                     if (start_crc) begin
-                        cmd_cnt      <= 6'd1;
+                       // cmd_cnt      <= 6'd1;
                         byte_cnt     <= 2'd0;
                         byte_cnt_255 <= 2'd0;
                         read_cnt     <= 8'd0;
@@ -187,9 +281,9 @@ module urr_crc (
                     end else if (rx_valid) begin
                         if (byte_cnt == 2'd3) begin
                             byte_cnt <= 2'd0;
-                            if (cmd_cnt < 6'd50) begin
-                                cmd_cnt <= cmd_cnt + 1;
-                            end
+                            // if (cmd_cnt < 6'd50) begin
+                            //     cmd_cnt <= cmd_cnt + 1;
+                            // end
                         end else begin
                             byte_cnt <= byte_cnt + 1;
                         end
@@ -240,7 +334,7 @@ module urr_crc (
                     // Завершаем процесс
                     crc_done   <= 1'b1;
                     // сброс регистров
-                    cmd_cnt      <= 6'd1;
+                   // cmd_cnt      <= 6'd1;
                     byte_cnt     <= 2'd0;
                     byte_cnt_255 <= 2'd0;
                     read_cnt     <= 8'd0;

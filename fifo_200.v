@@ -27,8 +27,9 @@ module fifo #(
     assign count = cnt;
 
     // Write and read pointer update
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
+    //always @(posedge clk or posedge rst) begin
+     always @(posedge clk) begin
+        if (!rst) begin
             wr_ptr <= 0;
             rd_ptr <= 0;
             cnt    <= 0;

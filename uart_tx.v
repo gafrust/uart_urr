@@ -15,7 +15,7 @@ module uart_tx (
     reg [3:0] bit_cnt;
     reg [7:0] shift_reg;
     (* IOB = "TRUE" *) reg tx_reg;
-    reg busy_reg;
+    (* SRL_STYLE = "register" *) reg busy_reg;
     reg parity;
 
     assign tx = tx_reg;

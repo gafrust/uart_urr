@@ -4,7 +4,7 @@ module urr (
     input  wire       start,
     input  wire [7:0] cmd,
 
-    input  wire       tx_busy,
+    (* DONT_TOUCH = "yes" *) input  wire       tx_busy,
     output reg        tx_start,
     output reg  [7:0] tx_data,
 

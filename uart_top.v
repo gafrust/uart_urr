@@ -60,9 +60,15 @@ module uart_top (
    (* DONT_TOUCH = "yes" *) wire [7:0]  rx_data_to_urr;
    (* DONT_TOUCH = "yes" *) wire        rx_error_to_urr;
 
-    assign rx_valid_to_urr = crc_running ? 1'b0 : rx_valid;
-    assign rx_data_to_urr  = crc_running ? 8'd0  : rx_data;
-    assign rx_error_to_urr = crc_running ? 1'b0 : rx_error;
+   (* DONT_TOUCH = "yes" *) wire        rx_valid_to_urr_crc;
+   (* DONT_TOUCH = "yes" *) wire [7:0]  rx_data_to_urr_crc;
+
+    // assign rx_valid_to_urr = crc_running ? 1'b0 : rx_valid;
+    // assign rx_data_to_urr  = crc_running ? 8'd0  : rx_data;
+    // assign rx_error_to_urr = crc_running ? 1'b0 : rx_error;
+
+    // assign rx_valid_to_urr_crc = crc_running ? rx_valid : 1'b0;
+    // assign rx_data_to_urr_crc  = crc_running ? rx_data  : 8'd0;
 
     // Multiplexer for urr:
     assign start = crc_running ? start_urr : start_bram;   // start_bram из bram
@@ -94,8 +100,8 @@ module uart_top (
         .rst_n     (~rst_n),
         .start_crc  (start_crc_impulse),
        // .crc_enable(crc_mode_enable),   // из bram (бит 2 reg_ctrl)
-        .rx_valid  (rx_valid),
-        .rx_data   (rx_data),
+        .rx_valid  (rx_valid), //(rx_valid_to_urr_crc),
+        .rx_data   (rx_data), //(rx_data_to_urr_crc),
         .rx_error  (rx_error),
         .tx_busy   (tx_busy),
         .urr_error (error),
@@ -118,8 +124,8 @@ module uart_top (
         .tx_busy  (tx_busy),
         .tx_start (tx_start),
         .tx_data  (tx_data),
-        .rx_valid (rx_valid_to_urr),
-        .rx_data  (rx_data_to_urr),
+        .rx_valid (rx_valid),//(rx_valid_to_urr),
+        .rx_data  (rx_data),//(rx_data_to_urr),
         .rx_error (rx_error_to_urr),
         .freq     (freq),
         .done     (done),
