@@ -1,25 +1,25 @@
 module uart_rx (
     input  wire       clk,
     input  wire       rst_n,
-   (* IOB = "TRUE" *) input  wire       rx,
-    output reg  [7:0] data,
-    output wire       valid,       // impuls pri prieme baita
-    output reg        error        // oshibka stop bita (ne ispolzuem)
+   (* DONT_TOUCH = "yes" *)  (* IOB = "TRUE" *) input  wire       rx,
+   (* DONT_TOUCH = "yes" *)  output reg  [7:0] data,
+   (* DONT_TOUCH = "yes" *)  output wire       valid,       // impuls pri prieme baita
+   (* DONT_TOUCH = "yes" *)  output reg        error        // oshibka stop bita (ne ispolzuem)
 );
 
     localparam BAUD_RATE = 115200;
     localparam CLK_FREQ  = 50_000_000;
     localparam BAUD_CNT  = CLK_FREQ / BAUD_RATE;
 
-    reg [15:0] baud_cnt;
-    reg [3:0] bit_cnt;
-    reg [8:0] shift_reg;
-    reg rx_sync1, rx_sync2;
-    reg rx_falling;
-    reg receiving;
-    (* SRL_STYLE = "register" *) reg valid_reg;
-    reg error_reg;
-    reg parity;
+   (* DONT_TOUCH = "yes" *)  reg [15:0] baud_cnt;
+   (* DONT_TOUCH = "yes" *)  reg [3:0] bit_cnt;
+   (* DONT_TOUCH = "yes" *)  reg [8:0] shift_reg;
+   (* DONT_TOUCH = "yes" *) reg rx_sync1, rx_sync2;
+   (* DONT_TOUCH = "yes" *)  reg rx_falling;
+   (* DONT_TOUCH = "yes" *)  reg receiving;
+   (* DONT_TOUCH = "yes" *)  (* SRL_STYLE = "register" *) reg valid_reg;
+   (* DONT_TOUCH = "yes" *)  reg error_reg;
+   (* DONT_TOUCH = "yes" *)   reg parity;
 
     assign valid = valid_reg;
 
@@ -30,7 +30,7 @@ module uart_rx (
             rx_sync1 <= 1;
             rx_sync2 <= 1;
             rx_falling <= 0;
-            parity <= 1;
+           // parity <= 1;
         end else begin
             rx_sync1 <= rx;
             rx_sync2 <= rx_sync1;
@@ -48,6 +48,7 @@ module uart_rx (
             valid_reg <= 0;
             error_reg <= 0;
             data <= 0;
+            parity <= 1;
         end else begin
             valid_reg <= 0; // impuls na odin takt
 

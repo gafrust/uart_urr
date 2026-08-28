@@ -58,7 +58,7 @@ module urr (
 
     // ---- Kombinacionnaya logika perehodov ----
     always @(*) begin
-        next_state = state;
+         next_state = state;
         case (state)
             IDLE: begin
                 if (start)
@@ -72,8 +72,8 @@ module urr (
                 //if (rx_valid && !rx_error)
                 if (rx_valid)
                     next_state = RX_DATA;
-                 if (timeout_cnt >= TIMEOUT_LIMIT)
-                      next_state = ERROR_ST;
+                // if (timeout_cnt >= TIMEOUT_LIMIT)
+                  //    next_state = ERROR_ST;
             end
             RX_DATA: begin
                if (byte_cnt == 2'd3)

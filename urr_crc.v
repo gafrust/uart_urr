@@ -1,19 +1,19 @@
 module urr_crc (
     input  wire        clk,
     input  wire        rst_n,
-    input  wire        start_crc,          // запуск всего процесса
-    input  wire [31:0] expected_crc,       // эталонное CRC (для внешней проверки)
-    input  wire        rx_valid,
-    input  wire [7:0]  rx_data,
-    input  wire        rx_error,
-    (* DONT_TOUCH = "yes" *) input  wire        tx_busy,
-    input  wire        urr_error,
-    output reg         start_urr,
+   (* DONT_TOUCH = "yes" *)input  wire        start_crc,          // запуск всего процесса
+   (* DONT_TOUCH = "yes" *) input  wire [31:0] expected_crc,       // эталонное CRC (для внешней проверки)
+   (* DONT_TOUCH = "yes" *) input  wire        rx_valid,
+   (* DONT_TOUCH = "yes" *) input  wire [7:0]  rx_data,
+   (* DONT_TOUCH = "yes" *) input  wire        rx_error,
+   (* DONT_TOUCH = "yes" *) input  wire        tx_busy,
+   (* DONT_TOUCH = "yes" *) input  wire        urr_error,
+   (* DONT_TOUCH = "yes" *) output reg         start_urr,
    (* DONT_TOUCH = "yes" *) output reg  [7:0]  cmd_urr,
-    output reg  [31:0] crc_result,         // вычисленное CRC (инвертированное)
+   (* DONT_TOUCH = "yes" *) output reg  [31:0] crc_result,         // вычисленное CRC (инвертированное)
    (* DONT_TOUCH = "yes" *)  output reg         crc_done,           // завершение всего процесса
-    output wire        crc_running,
-    output reg         crc_match           // 1 – если вычисленное CRC совпадает с принятым
+   (* DONT_TOUCH = "yes" *) output wire        crc_running,
+   (* DONT_TOUCH = "yes" *) output reg         crc_match           // 1 – если вычисленное CRC совпадает с принятым
 );
 
 
@@ -42,24 +42,26 @@ module urr_crc (
    (* DONT_TOUCH = "yes" *) reg [7:0]  read_cnt;         // количество байт, прочитанных из FIFO (0..199)
    (* DONT_TOUCH = "yes" *) reg [31:0] crc_reg;          // текущее вычисляемое CRC (неинвертированное)
     wire [31:0] crc_out;
+    wire [5:0] cmd_cnt_d;
 
     // ---- Счётчики и регистры для проверочной команды 0xFF ----
    (* DONT_TOUCH = "yes" *) reg [1:0]  byte_cnt_255;     // 0..3 для приёма ответа на 0xFF
    (* DONT_TOUCH = "yes" *) reg [31:0] crc_received;     // собранное CRC из 4 байт (уже инвертированное)
 
     // ---- FIFO сигналы ----
-    wire        fifo_wr_en;
-    wire [7:0]  fifo_wr_data;
-    wire        fifo_rd_en;
-    wire [7:0]  fifo_rd_data;
-    wire        fifo_empty;
-    wire        fifo_full;
-    wire [7:0]  fifo_count;
+     (* DONT_TOUCH = "yes" *) wire        fifo_wr_en;
+     (* DONT_TOUCH = "yes" *) wire [7:0]  fifo_wr_data;
+     (* DONT_TOUCH = "yes" *) wire        fifo_rd_en;
+     (* DONT_TOUCH = "yes" *) wire [7:0]  fifo_rd_data;
+     (* DONT_TOUCH = "yes" *) wire        fifo_empty;
+     (* DONT_TOUCH = "yes" *) wire        fifo_full;
+     (* DONT_TOUCH = "yes" *) wire [7:0]  fifo_count;
 
     // ---- Сигналы для управления чтением из FIFO ----
-    reg         fifo_rd_en_st;          // внутренний строб чтения
-    reg         crc_update_pending;     // флаг, что байт защёлкнут и нужно обновить CRC
-    reg [7:0]   fifo_rd_data_reg;       // защёлкнутый байт из FIFO
+      (* DONT_TOUCH = "yes" *) reg         fifo_rd_en_st;          // внутренний строб чтения
+      (* DONT_TOUCH = "yes" *) reg         crc_update_pending;     // флаг, что байт защёлкнут и нужно обновить CRC
+      (* DONT_TOUCH = "yes" *) reg [7:0]   fifo_rd_data_reg;       // защёлкнутый байт из FIFO
+      (* DONT_TOUCH = "yes" *) reg [21:0] send_delay;   // 0..5 (3 бита хватит)
 
     // ---- Инстанс FIFO ----
     fifo #(.DATA_WIDTH(8), .DEPTH(200)) u_fifo (
@@ -119,14 +121,15 @@ end
             end
 
             SEND: begin
-                if (!tx_busy) next_state = WAIT_RX;
+                if (!tx_busy && send_delay == 1200000) next_state = WAIT_RX;
+                //if (!tx_busy) next_state = WAIT_RX;
                 else next_state = SEND; // Явно
             end
 
             WAIT_RX: begin
-                if (rx_error)
-                    next_state = ERROR_ST;
-                else if (rx_valid) begin
+                //if (rx_error)
+                   // next_state = ERROR_ST;
+               /* else*/ if (rx_valid) begin
                       if (byte_cnt == 2'd3) begin
                           if (cmd_cnt == 6'd50)
                               next_state = COLLECT;
@@ -145,14 +148,14 @@ end
             end
 
             SEND_255: begin
-                if (!tx_busy) next_state = WAIT_RX_255;
+                if (!tx_busy && send_delay == 1200000) next_state = WAIT_RX_255;//if (!tx_busy) next_state = WAIT_RX_255;
                 else next_state = SEND_255; // Явно
             end
 
             WAIT_RX_255: begin
-                if (rx_error)
-                    next_state = ERROR_ST;
-                else if (rx_valid) begin
+              //  if (rx_error)
+              //      next_state = ERROR_ST;
+               /* else*/ if (rx_valid) begin
                     if (byte_cnt_255 == 2'd3)
                         next_state = COMPARE;
                     else
@@ -227,7 +230,7 @@ end
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state        <= IDLE;
-            cmd_cnt      <= 6'd1;
+          //  cmd_cnt_d      <= 6'd1;
             byte_cnt     <= 2'd0;
             byte_cnt_255 <= 2'd0;
             read_cnt     <= 8'd0;
@@ -241,10 +244,12 @@ end
             fifo_rd_en_st <= 1'b0;
             crc_update_pending <= 1'b0;
             fifo_rd_data_reg <= 8'd0;
+            send_delay <= 22'd0;
         end else begin
             start_urr <= 1'b0;
             crc_done  <= 1'b0;
             crc_match <= 1'b0;
+            
 
             // ---- Защёлка данных при чтении из FIFO ----
             if (fifo_rd_en) begin
@@ -253,10 +258,20 @@ end
                 fifo_rd_en_st <= 1'b1;
             end
 
+            // Сброс send_delay при переходе в SEND из другого состояния
+             if (next_state == SEND && state != SEND) begin
+                 send_delay <= 22'd0;
+             end
+
+             // Сброс send_delay при переходе в SEND_255 из другого состояния
+             if (next_state == SEND_255 && state != SEND_255) begin
+                 send_delay <= 22'd0;
+             end
+
             case (state)
                 IDLE: begin
                     if (start_crc) begin
-                       // cmd_cnt      <= 6'd1;
+                       // cmd_cnt_d      <= 6'd1;
                         byte_cnt     <= 2'd0;
                         byte_cnt_255 <= 2'd0;
                         read_cnt     <= 8'd0;
@@ -264,27 +279,33 @@ end
                         crc_received <= 32'd0;
                         fifo_rd_en_st <= 1'b0;
                         crc_update_pending <= 1'b0;
+                        send_delay <= 22'd0;
                     end
                 end
 
                 SEND: begin
-                    if (!tx_busy) begin
+                     if (send_delay < 1200000) begin
+                       send_delay <= send_delay + 1;
+                     end
+
+                    if (send_delay == 1200000 && !tx_busy) begin
+                   //if (!tx_busy) begin
                         start_urr <= 1'b1;
-                        cmd_urr   <= cmd_cnt;
+                        cmd_urr   <= cmd_cnt_d;
                         byte_cnt  <= 2'd0;
                     end
                 end
 
                 WAIT_RX: begin
-                    if (rx_error) begin
+                    //if (rx_error) begin
                         // обработка ошибки
-                    end else if (rx_valid) begin
+     /* end else */ if (rx_valid) begin
                         if (byte_cnt == 2'd3) begin
                             byte_cnt <= 2'd0;
                             // if (cmd_cnt < 6'd50) begin
                             //     cmd_cnt <= cmd_cnt + 1;
                             // end
-                        end else begin
+                            end else begin
                             byte_cnt <= byte_cnt + 1;
                         end
                     end
@@ -297,12 +318,18 @@ end
                     read_cnt <= read_cnt + 1;
                     crc_reg  <= crc_out;
                     crc_update_pending <= 1'b0;
+                    send_delay <= 22'd0;
                     
                 end
 
                 SEND_255: begin
+                    if (send_delay < 1200000) begin
+                       send_delay <= send_delay + 1;
+                    end
+
                     fifo_rd_en_st <= 1'b0;
-                    if (!tx_busy) begin
+                    if (send_delay == 1200000 && !tx_busy) begin
+                    //if (!tx_busy) begin
                         start_urr <= 1'b1;
                         cmd_urr   <= 8'hFF;
                         byte_cnt_255 <= 2'd0;
@@ -310,9 +337,9 @@ end
                 end
 
                 WAIT_RX_255: begin
-                    if (rx_error) begin
+                  //  if (rx_error) begin
                         // ошибка
-                    end else if (rx_valid) begin
+                    /*end else*/ if (rx_valid) begin
                         case (byte_cnt_255)
                             2'd0: crc_received[31:24] <= rx_data;
                             2'd1: crc_received[23:16] <= rx_data;
@@ -340,6 +367,7 @@ end
                     read_cnt     <= 8'd0;
                     fifo_rd_en_st <= 1'b0;
                     crc_update_pending <= 1'b0;
+                    send_delay <= 22'd0;
                 end
 
                 ERROR_ST: begin
@@ -360,6 +388,7 @@ end
     assign fifo_wr_data = rx_data;
     assign fifo_rd_en   = (state == COLLECT);//&& !fifo_empty && (read_cnt < 8'd200);
     assign crc_running  = (state != IDLE) && (state != DONE_ST) && (state != ERROR_ST);
+    assign cmd_cnt_d = cmd_cnt;
     //assign fifo_rd_en_st = 1'b1;
 
 endmodule
