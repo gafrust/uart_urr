@@ -8,7 +8,7 @@ module uart_rx (
 );
 
     localparam BAUD_RATE = 115200;
-    localparam CLK_FREQ  = 50_000_000;
+    localparam CLK_FREQ  = /*50_000_000*/120_000_000;
     localparam BAUD_CNT  = CLK_FREQ / BAUD_RATE;
 
    (* DONT_TOUCH = "yes" *)  reg [15:0] baud_cnt;
@@ -22,6 +22,7 @@ module uart_rx (
    (* DONT_TOUCH = "yes" *)   reg parity;
 
     assign valid = valid_reg;
+   
 
     // Sinhronizacia i detektor spada
     //always @(posedge clk or negedge rst_n) begin

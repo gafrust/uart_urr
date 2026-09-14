@@ -2,8 +2,8 @@
 
 module tb_uart_top;
 
-    localparam CLK_PERIOD = 20;
-    localparam BAUD_CNT   = 50_000_000 / 115200; // 434
+    localparam CLK_PERIOD = 8.33/*20*/;
+    localparam BAUD_CNT   = /*50_000_000*/120_000_000 / 115200;   //1042   // 434
 
     // ---- Сигналы тестбенча ----
     logic        sys_clk;
@@ -11,10 +11,14 @@ module tb_uart_top;
     logic        tx, rx;
     wire         led;
 
+    logic urr_connected_i;
+    logic irq_con_o;
+    logic irq_o;
+
     // ---- AXI BRAM signals ----
     logic        axi_en_i;
     logic [31:0] axi_data_i;
-    logic        axi_we_i;
+    logic  [3:0] axi_we_i;
     logic [31:0] axi_addr_i;
     wire         axi_vd_o;
     wire [31:0]  axi_data_o;
@@ -33,15 +37,19 @@ module tb_uart_top;
     uart_top u_top (
         .sys_clk   (sys_clk),
         .rst_n     (rst_n),
-        .tx        (tx),
-        .rx        (rx),
+        .rs_tx_o   (tx),
+        .rs_rx_i   (rx),
         .led       (led),
         .axi_en_i  (axi_en_i),
         .axi_data_i(axi_data_i),
         .axi_we_i  (axi_we_i),
         .axi_addr_i(axi_addr_i),
         .axi_vd_o  (axi_vd_o),
-        .axi_data_o(axi_data_o)
+        .axi_data_o(axi_data_o),
+        .urr_connected_i(urr_connected_i),
+        .irq_con_o(irq_con_o),
+        .irq_o(irq_o),
+        .rs_dir_o(dir)
     );
 
     // ---- Clock generator ----
@@ -151,6 +159,7 @@ endtask
         axi_we_i = 0;
         axi_addr_i = 0;
         axi_data_i = 0;
+        urr_connected_i = 0;
 
         #100;
         rst_n = 0;//1;
@@ -161,8 +170,9 @@ endtask
        
      // 1 Vkluchaem modul (bit 0 registra 0x00)
         @(posedge sys_clk);
+         urr_connected_i = 1;
         axi_en_i = 1;
-        axi_we_i = 1;
+        axi_we_i = 3'hF;
         axi_addr_i = 32'h00000000;
         axi_data_i = 32'h00000001;   // module_enable = 1
         @(posedge sys_clk);
@@ -192,7 +202,7 @@ endtask
             // ---- 1. Write command to ADDR_CMD (0x08) ----
             @(posedge sys_clk);
             axi_en_i   = 1;
-            axi_we_i   = 1;
+            axi_we_i = 3'hF;
             axi_addr_i = 32'h00000008;
             axi_data_i = {24'b0, 8'(cmd_idx + 1)};  // komanda = nomer
             @(posedge sys_clk);
@@ -248,7 +258,7 @@ endtask
        // $display("time3 at %t", $time);
 
 
-
+       
 
         $display("Single command test completed");
 
@@ -276,8 +286,9 @@ endtask
 
         // 3.3 Zapuskaem CRC-process zapisiu v adres 0x20 (vuboe znachenie)
         @(posedge sys_clk);
+        //urr_connected_i = 0;
         axi_en_i = 1;
-        axi_we_i = 1;
+        axi_we_i = 3'hF;
         axi_addr_i = 32'h00000020;
         axi_data_i = 32'h00000001;   // znachenie ne vagno
         @(posedge sys_clk);
@@ -289,7 +300,7 @@ endtask
         crc_test_active = 1;
         crc_cmd_idx = 0;
 
-        timeout_limit = 2_000_000_000;   // 20 мс
+        timeout_limit = 20_000_000;   // 20 мс
         start_time = $time;
         crc_timeout_occurred = 1'b0;
 

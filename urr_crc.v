@@ -1,8 +1,8 @@
 module urr_crc (
     input  wire        clk,
     input  wire        rst_n,
-   (* DONT_TOUCH = "yes" *)input  wire        start_crc,          // запуск всего процесса
-   (* DONT_TOUCH = "yes" *) input  wire [31:0] expected_crc,       // эталонное CRC (для внешней проверки)
+   (* DONT_TOUCH = "yes" *)input  wire        start_crc,          // zapusk vsego processa
+   //(* DONT_TOUCH = "yes" *) input  wire [31:0] expected_crc,       // etalonnoe crc
    (* DONT_TOUCH = "yes" *) input  wire        rx_valid,
    (* DONT_TOUCH = "yes" *) input  wire [7:0]  rx_data,
    (* DONT_TOUCH = "yes" *) input  wire        rx_error,
@@ -10,15 +10,15 @@ module urr_crc (
    (* DONT_TOUCH = "yes" *) input  wire        urr_error,
    (* DONT_TOUCH = "yes" *) output reg         start_urr,
    (* DONT_TOUCH = "yes" *) output reg  [7:0]  cmd_urr,
-   (* DONT_TOUCH = "yes" *) output reg  [31:0] crc_result,         // вычисленное CRC (инвертированное)
-   (* DONT_TOUCH = "yes" *)  output reg         crc_done,           // завершение всего процесса
+   (* DONT_TOUCH = "yes" *) output reg  [31:0] crc_result,         // vicheslennoe CRC (invertirovannoe)
+   (* DONT_TOUCH = "yes" *)  output reg         crc_done,          // zavershenie vsego processa
    (* DONT_TOUCH = "yes" *) output wire        crc_running,
-   (* DONT_TOUCH = "yes" *) output reg         crc_match           // 1 – если вычисленное CRC совпадает с принятым
+   (* DONT_TOUCH = "yes" *) output reg         crc_match           // 1 – esli vichislennoe CRC sovpadaet s prinatim
 );
 
 
     // ------------------------------------------------------------
-    // Состояния конечного автомата
+    // Sostoyaniya konechnogo avtomata
     // ------------------------------------------------------------
     localparam IDLE        = 4'd0,
                SEND        = 4'd1,
@@ -36,19 +36,19 @@ module urr_crc (
     (* use_clock_enable = "false" *)
     reg [3:0] state, next_state;
 
-    // ---- Счётчики и регистры для основного процесса ----
+    // ---- Schetchiki i registri dla osnovnogo processa----
    (* DONT_TOUCH = "yes" *)(* use_clock_enable = "false" *) reg [5:0]  cmd_cnt;          // 1..50
-   (* DONT_TOUCH = "yes" *) reg [1:0]  byte_cnt;         // 0..3 для приёма ответов на команды 1..50
-   (* DONT_TOUCH = "yes" *) reg [7:0]  read_cnt;         // количество байт, прочитанных из FIFO (0..199)
-   (* DONT_TOUCH = "yes" *) reg [31:0] crc_reg;          // текущее вычисляемое CRC (неинвертированное)
+   (* DONT_TOUCH = "yes" *) reg [1:0]  byte_cnt;         // 0..3 dla priema otvetov na komandi 1..50
+   (* DONT_TOUCH = "yes" *) reg [7:0]  read_cnt;         // kolichestvo bait prochitannih iz FIFO (0..199)
+   (* DONT_TOUCH = "yes" *) reg [31:0] crc_reg;          // tekushee vichislaemoe CRC (neinvertirovannoe)
     wire [31:0] crc_out;
     wire [5:0] cmd_cnt_d;
 
-    // ---- Счётчики и регистры для проверочной команды 0xFF ----
-   (* DONT_TOUCH = "yes" *) reg [1:0]  byte_cnt_255;     // 0..3 для приёма ответа на 0xFF
-   (* DONT_TOUCH = "yes" *) reg [31:0] crc_received;     // собранное CRC из 4 байт (уже инвертированное)
+    // ---- Schetchiki i registri dla proverochnoi komandi 0xFF ----
+   (* DONT_TOUCH = "yes" *) reg [1:0]  byte_cnt_255;     // 0..3 dla priema otveta na 0xFF
+   (* DONT_TOUCH = "yes" *) reg [31:0] crc_received;     // sobrannoe CRC iz 4 bait (uge invertirovannoe)
 
-    // ---- FIFO сигналы ----
+    // ---- FIFO signali ----
      (* DONT_TOUCH = "yes" *) wire        fifo_wr_en;
      (* DONT_TOUCH = "yes" *) wire [7:0]  fifo_wr_data;
      (* DONT_TOUCH = "yes" *) wire        fifo_rd_en;
@@ -57,13 +57,13 @@ module urr_crc (
      (* DONT_TOUCH = "yes" *) wire        fifo_full;
      (* DONT_TOUCH = "yes" *) wire [7:0]  fifo_count;
 
-    // ---- Сигналы для управления чтением из FIFO ----
-      (* DONT_TOUCH = "yes" *) reg         fifo_rd_en_st;          // внутренний строб чтения
-      (* DONT_TOUCH = "yes" *) reg         crc_update_pending;     // флаг, что байт защёлкнут и нужно обновить CRC
-      (* DONT_TOUCH = "yes" *) reg [7:0]   fifo_rd_data_reg;       // защёлкнутый байт из FIFO
-      (* DONT_TOUCH = "yes" *) reg [21:0] send_delay;   // 0..5 (3 бита хватит)
+    // ---- Signali dla upravlenia chteniem iz FIFO ----
+      (* DONT_TOUCH = "yes" *) reg         fifo_rd_en_st;          // vnutrennii strob chtenia
+      (* DONT_TOUCH = "yes" *) reg         crc_update_pending;     // flag, chto bait zashelknut i nugno obnovit CRC
+      (* DONT_TOUCH = "yes" *) reg [7:0]   fifo_rd_data_reg;       // zashelknutii bait iz FIFO
+      (* DONT_TOUCH = "yes" *) reg [21:0] send_delay;   // zadergka megdu baitami
 
-    // ---- Инстанс FIFO ----
+    // ---- Instans FIFO ----
     fifo #(.DATA_WIDTH(8), .DEPTH(200)) u_fifo (
         .clk    (clk),
         .rst    (rst_n),
@@ -76,7 +76,7 @@ module urr_crc (
         .count  (fifo_count)
     );
 
-    // ---- Инстанс обёртки CRC (включается по fifo_rd_en_st) ----
+    // ---- Instans obertki CRC (vkluchartsa po fifo_rd_en_st) ----
     crc_wrapper u_crc_wrap (
         .enable (fifo_rd_en_st),//(fifo_rd_en_st),
         .crcIn  (crc_reg),
@@ -89,7 +89,7 @@ module urr_crc (
 // Novii always blok for ustranenia ostanovki cmd_cnt
 //-----------------------------------------------------------------
 
-// ---- Счётчик команд (вынесен в отдельный блок) ----
+// ---- Schetchik komand (vinesen v otdelnii blok) ----
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         cmd_cnt <= 6'd1;
@@ -98,7 +98,7 @@ always @(posedge clk or negedge rst_n) begin
         if (state == IDLE || state == DONE_ST) begin
             cmd_cnt <= 6'd1;
         end
-        // Инкремент только в WAIT_RX при получении последнего байта ответа
+        // Inkrement tolko v WAIT_RX pri poluchenii poslednego baita otveta
         else if (state == WAIT_RX && rx_valid && byte_cnt == 2'd3 && cmd_cnt < 6'd50) begin
             cmd_cnt <= cmd_cnt + 1;
         end
@@ -109,7 +109,7 @@ end
 
 
     // ------------------------------------------------------------
-    // Комбинационная логика переходов
+    // Kombinacionnaya logika perehodov
     // ------------------------------------------------------------
      (* full_case, parallel_case *)
     always @(*) begin
@@ -117,13 +117,13 @@ end
         case (state)
             IDLE: begin
                 if (start_crc) next_state = SEND;
-                else next_state = IDLE; // Явно
+                else next_state = IDLE; 
             end
 
             SEND: begin
-                if (!tx_busy && send_delay == 1200000) next_state = WAIT_RX;
+                if (!tx_busy /*&& send_delay == 1200000*/) next_state = WAIT_RX;
                 //if (!tx_busy) next_state = WAIT_RX;
-                else next_state = SEND; // Явно
+                else next_state = SEND; 
             end
 
             WAIT_RX: begin
@@ -139,7 +139,7 @@ end
                         next_state = WAIT_RX;
                 end
                 else
-                    next_state = WAIT_RX; // <--- Добавлено!
+                    next_state = WAIT_RX; 
             end
 
             COLLECT: begin
@@ -148,7 +148,7 @@ end
             end
 
             SEND_255: begin
-                if (!tx_busy && send_delay == 1200000) next_state = WAIT_RX_255;//if (!tx_busy) next_state = WAIT_RX_255;
+                if (!tx_busy /*&& send_delay == 1200000*/) next_state = WAIT_RX_255;//if (!tx_busy) next_state = WAIT_RX_255;
                 else next_state = SEND_255; // Явно
             end
 
@@ -162,7 +162,7 @@ end
                         next_state = WAIT_RX_255;
                 end
                 else
-                    next_state = WAIT_RX_255; // <--- Добавлено!
+                    next_state = WAIT_RX_255; 
             end
 
             COMPARE: next_state = DONE_ST;
@@ -171,58 +171,13 @@ end
 
             ERROR_ST: next_state = IDLE;
 
-            default: next_state = IDLE; // Уберите эту строку, она вызывает сбои
+            default: next_state = IDLE; 
         endcase
     end
 
 
 
 
-    // always @(*) begin
-    //     next_state = state;
-    //     case (state)
-    //         IDLE: if (start_crc) next_state = SEND;
-
-    //         SEND: if (!tx_busy) next_state = WAIT_RX;
-
-    //         WAIT_RX: begin
-    //             if (rx_error)
-    //                 next_state = ERROR_ST;
-    //             else if (rx_valid) begin
-    //                   if (byte_cnt == 2'd3) begin
-    //                       if (cmd_cnt == 6'd50)
-    //                           next_state = COLLECT;
-    //                       else
-    //                           next_state = SEND;
-    //                   end else
-    //                     next_state = WAIT_RX;
-    //             end
-    //         end
-
-    //         COLLECT: if (read_cnt == 8'd200) next_state = SEND_255;
-
-    //         SEND_255: if (!tx_busy) next_state = WAIT_RX_255;
-
-    //         WAIT_RX_255: begin
-    //             if (rx_error)
-    //                 next_state = ERROR_ST;
-    //             else if (rx_valid) begin
-    //                 if (byte_cnt_255 == 2'd3)
-    //                     next_state = COMPARE;
-    //                 else
-    //                     next_state = WAIT_RX_255;
-    //             end
-    //         end
-
-    //         COMPARE: next_state = DONE_ST;
-
-    //         DONE_ST: next_state = IDLE;
-
-    //         ERROR_ST: next_state = IDLE;
-
-    //         default: next_state = IDLE;
-    //     endcase
-    // end
 
     // ------------------------------------------------------------
     // Синхронная логика
@@ -284,11 +239,11 @@ end
                 end
 
                 SEND: begin
-                     if (send_delay < 1200000) begin
-                       send_delay <= send_delay + 1;
-                     end
+                    //  if (send_delay < 1200000) begin
+                    //    send_delay <= send_delay + 1;
+                    //  end
 
-                    if (send_delay == 1200000 && !tx_busy) begin
+                    if (/*send_delay == 1200000 &&*/ !tx_busy) begin
                    //if (!tx_busy) begin
                         start_urr <= 1'b1;
                         cmd_urr   <= cmd_cnt_d;
@@ -323,12 +278,12 @@ end
                 end
 
                 SEND_255: begin
-                    if (send_delay < 1200000) begin
-                       send_delay <= send_delay + 1;
-                    end
+                    // if (send_delay < 1200000) begin
+                    //    send_delay <= send_delay + 1;
+                    // end
 
                     fifo_rd_en_st <= 1'b0;
-                    if (send_delay == 1200000 && !tx_busy) begin
+                    if (/*send_delay == 1200000 &&*/ !tx_busy) begin
                     //if (!tx_busy) begin
                         start_urr <= 1'b1;
                         cmd_urr   <= 8'hFF;

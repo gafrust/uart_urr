@@ -16,9 +16,6 @@ module urr (
     output reg         done,
     output reg         error,
     output wire        dir   // Upravlaushii vivod for RE DE max487 
-
-    // input  wire       flag_crc,        // novii vhod
-    // output reg  [31:0] crc_result      // finalnoe CRC (opcionalno)
 );
 
     localparam TIMEOUT_LIMIT = 250000; // 5 ms pri 50 Mhz
@@ -39,20 +36,13 @@ module urr (
     reg [7:0] rx_data_latch;
 
     reg tx_busy_prev;
-    reg        dir_reg;
     reg rx_pending;
 
     reg [31:0] crc_reg;
     wire [31:0] crc_out;
 
-    assign dir = tx_busy;//dir_reg;
+    assign dir = tx_busy;
 
-
-//    crc u_crc (
-//     .crcIn (crc_reg),
-//     .data  (rx_data_latch),   // или data_in, если вы его используете
-//     .crcOut(crc_out)
-//     );
 
 
 
@@ -69,11 +59,8 @@ module urr (
                     next_state = RX_WAIT;
             end
             RX_WAIT: begin
-                //if (rx_valid && !rx_error)
                 if (rx_valid)
                     next_state = RX_DATA;
-                // if (timeout_cnt >= TIMEOUT_LIMIT)
-                  //    next_state = ERROR_ST;
             end
             RX_DATA: begin
                if (byte_cnt == 2'd3)
@@ -110,7 +97,7 @@ end
         if (!rst_n) begin
             state        <= IDLE;
             cmd_reg      <= 8'd0;
-            freq_reg     <= 24'd0;//32'd0;
+            freq_reg     <= 24'd0;
             byte_cnt     <= 2'd0;
             timeout_cnt  <= 32'd0;
             tx_start     <= 1'b0;
@@ -118,11 +105,9 @@ end
             freq         <= 24'd0;
             done         <= 1'b0;
             error        <= 1'b0;
-            dir_reg      <= 1'b0;
             rx_pending <= 1'b0;
             crc_reg <= 32'hF5F5F5F5;   // nachalnoe znachenie for CRC32
-            //crc_result <= 32'd0;
-            //rx_data_latch <= 8'd0;
+            
         end else begin
             // Sbros impulsnih vihodov po umolchaniu
             tx_start <= 1'b0;
@@ -136,7 +121,6 @@ end
             case (state)
                 IDLE: begin
                     if (start) begin
-                        dir_reg <= 1'b1;
                         cmd_reg  <= cmd;
                         tx_data  <= cmd;
                         tx_start <= 1'b1;
@@ -148,7 +132,6 @@ end
                 end
 
                 RX_WAIT: begin
-                    dir_reg <= 1'b0;
                     // Sbros taimauta pri vhode v eto sostoyanie
                     if (next_state == RX_WAIT && state != RX_WAIT) begin
                         timeout_cnt <= 32'd0;
@@ -164,22 +147,22 @@ end
                 RX_DATA: begin
                if (rx_pending) begin
                          timeout_cnt <= 32'd0;
-                       // проверка порядка (опционально)
+                       // proverka poradka
                       if (byte_cnt != rx_data_latch[7:6]) error <= 1'b1;
-                       // запись в freq_reg
+                       // zapis v freq_reg
                       case (byte_cnt)
                              2'd0: freq_reg[5:0]  <= rx_data_latch[5:0];
                              2'd1: freq_reg[11:6] <= rx_data_latch[5:0];
                              2'd2: freq_reg[17:12]<= rx_data_latch[5:0];
                              2'd3: freq_reg[23:18]<= rx_data_latch[5:0];
                       endcase
-                       // увеличиваем счётчик, если это не последний байт
+                       // uvelichivaem schetchik, esli eto ne poslednii bait
                         if (byte_cnt < 2'd3)
                             byte_cnt <= byte_cnt + 1;
-                       // сброс pending
+                       // sbros pending
                             rx_pending <= 1'b0;
                         end else begin
-                      // таймаут, если нет данных
+                      // taimaut, esli net dannih
                         if (timeout_cnt < TIMEOUT_LIMIT)
                              timeout_cnt <= timeout_cnt + 1;
                         end
@@ -187,51 +170,10 @@ end
 
 
 
-                //     if (rx_pending) begin
-                //         // Sbros taimauta
-                //         timeout_cnt <= 32'd0;
-                //         // if (flag_crc) begin
-                //         //       crc_reg <= crc_out;
-                //         // end else begin
-                //         // Sohranaem bait v freq_reg (MSB first)
-                //             case (byte_cnt)
-                //                 2'd0: begin
-                //                       if(byte_cnt == rx_data_latch[7:6]) freq_reg[5:0]   <= rx_data_latch[5:0]; else error <= 1'b1; 
-                //                       //$display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
-                //                       end
-                //                 2'd1: begin
-                //                       if(byte_cnt == rx_data_latch[7:6]) freq_reg[11:6]  <= rx_data_latch[5:0]; else error <= 1'b1;
-                //                       //$display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
-                //                       end
-                //                 2'd2: begin
-                //                       if(byte_cnt == rx_data_latch[7:6]) freq_reg[17:12] <= rx_data_latch[5:0]; else error <= 1'b1;
-                //                       //$display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
-                //                       end
-                //                 2'd3: begin
-                //                       if(byte_cnt == rx_data_latch[7:6]) freq_reg[23:18] <= rx_data_latch[5:0]; else error <= 1'b1;
-                //                      // $display("byte_cnt == %2b, rx_data_latch[7:0] = %08b", byte_cnt, rx_data_latch);
-                //                       end
-                //             endcase
-                //        // end
-                //         // Uvelichivaem schetchik, esli eto ne  4-i bait
-                //         // if (byte_cnt < 2'd3)
-                //         //     byte_cnt <= byte_cnt + 1;
-                //           rx_pending <= 1'b0;
-                //     end else begin
-                //         if (byte_cnt < 2'd3)
-                //             byte_cnt <= byte_cnt + 1;
-                //         // Schitaem timeout, esli net baita
-                //         if (timeout_cnt < TIMEOUT_LIMIT)
-                //             timeout_cnt <= timeout_cnt + 1;
-                //     end
-                // end
-
+               
                 DONE: begin
                     freq <= freq_reg;
                     done <= 1'b1;
-                    // if (flag_crc) begin
-                    // crc_result <= crc_reg ^ 32'hFFFFFFFF; //crc_result <= crc_reg;   // сохраняем CRC
-                    // end
                     // Sbros registrov dla sledujuchego zapuska
                     byte_cnt    <= 2'd0;
                     freq_reg    <= 32'd0;

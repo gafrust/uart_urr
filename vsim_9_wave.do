@@ -51,6 +51,11 @@ add wave -noupdate /tb_uart_top/u_top/rx_data
 add wave -noupdate /tb_uart_top/u_top/rx_error
 add wave -noupdate /tb_uart_top/u_top/dir_OBUF
 
+add wave -noupdate /tb_uart_top/u_top/urr_connected_i;
+add wave -noupdate /tb_uart_top/u_top/irq_con_o;
+add wave -noupdate /tb_uart_top/u_top/irq_o;
+add wave -noupdate /tb_uart_top/u_top/dir;
+
 
 # -------------------- Группа bram_interface_urr --------------------
 add wave -noupdate -divider {BRAM Interface}
@@ -79,6 +84,8 @@ add wave -noupdate /tb_uart_top/u_top/u_urr_crc/cmd_urr_reg
 add wave -noupdate /tb_uart_top/u_top/u_urr_crc/crc_received_reg
 add wave -noupdate /tb_uart_top/u_top/u_urr_crc/crc_reg
 add wave -noupdate /tb_uart_top/u_top/u_urr_crc/crc_result
+add wave -noupdate /tb_uart_top/u_top/u_urr_crc/fifo_rd_en_st_reg_0
+add wave -noupdate /tb_uart_top/u_top/u_urr_crc/send_delay
 
 
 # Подгруппа FIFO

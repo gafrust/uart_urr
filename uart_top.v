@@ -1,18 +1,22 @@
 module uart_top (
     input  wire       sys_clk,      // 50 Mhz
     input  wire       rst_n,
-   (* IOB = "TRUE" *) output wire       tx,           // UART TX
-   (* IOB = "TRUE" *) input  wire       rx,           // UART RX
+   (* IOB = "TRUE" *) output wire       rs_tx_o,           // UART TX
+   (* IOB = "TRUE" *) input  wire       rs_rx_i,           // UART RX
    (* DONT_TOUCH = "yes" *) output wire       led,          // svetodiod
 
     // AXI BRAM interface (podkluchenie k bram_interface_urr)
     (* DONT_TOUCH = "yes" *) input  wire        axi_en_i,
     (* DONT_TOUCH = "yes" *) input  wire [31:0] axi_data_i,
-    (* DONT_TOUCH = "yes" *) input  wire        axi_we_i,
+    (* DONT_TOUCH = "yes" *) input  wire  [3:0] axi_we_i,
     (* DONT_TOUCH = "yes" *) input  wire [31:0] axi_addr_i,
-   (* DONT_TOUCH = "yes" *)  output wire        axi_vd_o,
+    (* DONT_TOUCH = "yes" *)  output wire        axi_vd_o,
     (* DONT_TOUCH = "yes" *) output wire [31:0] axi_data_o,
-    (* DONT_TOUCH = "yes" *) output wire  dir
+    (* DONT_TOUCH = "yes" *) output wire rs_dir_o,
+    (* DONT_TOUCH = "yes" *) output wire irq_con_o,
+    (* DONT_TOUCH = "yes" *) output wire irq_o,
+
+    (* DONT_TOUCH = "yes" *) input  wire urr_connected_i
 );
 
     // ---- Vnutrennie signali ----
@@ -22,7 +26,6 @@ module uart_top (
     (* DONT_TOUCH = "yes" *) wire       rx_valid;
     (* DONT_TOUCH = "yes" *) wire [7:0] rx_data;
     (* DONT_TOUCH = "yes" *) wire       rx_error;
-    wire       rst;
     (* DONT_TOUCH = "yes" *) wire       module_enable;
 
     // Signali megdu bram_interface_urr и urr
@@ -41,7 +44,8 @@ module uart_top (
    (* DONT_TOUCH = "yes" *) wire        crc_match;
    
     //Vkluchenie
-   // assign rst = module_enable? rst_n : 1'b1; //module_enable
+    assign rst = (module_enable && urr_connected_i)? rst_n : 1'b1; //module_enable
+   
 
     // ---- Svetodiot ----
     (* DONT_TOUCH = "yes" *) reg [31:0] led_cnt;
@@ -54,7 +58,7 @@ module uart_top (
 
 
 
-
+    wire rst;
     // ---- Signali for urr (maskiruyotsa v  CRC-regime) ----
    (* DONT_TOUCH = "yes" *) wire        rx_valid_to_urr;
    (* DONT_TOUCH = "yes" *) wire [7:0]  rx_data_to_urr;
@@ -74,20 +78,35 @@ module uart_top (
     assign start = crc_running ? start_urr : start_bram;   // start_bram из bram
     assign cmd   = crc_running ? cmd_urr   : cmd_bram;     // cmd_bram из bram
 
+
+    pulse_stretcher pulse_irq_con_o(
+                .clk(sys_clk),          // 50 МГц
+                .rst(rst_n),
+                .imp_i(urr_connected_i),  // короткий импульс (8 нс)
+                .imp_out(irq_con_o) // растянутый импульс (100 нс)
+    );
+
+    pulse_stretcher pulse_irq_o(
+                .clk(sys_clk),          // 50 МГц
+                .rst(rst_n),
+                .imp_i(done),  // короткий импульс (8 нс)
+                .imp_out(irq_o) // растянутый импульс (100 нс)
+    );
+
     // ---- Instansi modulei ----
     uart_tx u_tx (
         .clk   (sys_clk),
-        .rst_n (~rst_n),
+        .rst_n (~rst),
         .start (tx_start),
         .data  (tx_data),
         .busy  (tx_busy),
-        .tx    (tx)
+        .tx    (rs_tx_o)
     );
 
     uart_rx u_rx (
         .clk   (sys_clk),
-        .rst_n (~rst_n),
-        .rx    (rx),
+        .rst_n (~rst),
+        .rx    (rs_rx_i),
         .data  (rx_data),
         .valid (rx_valid),
         .error (rx_error)
@@ -97,7 +116,7 @@ module uart_top (
         // Instans urr_crc
     urr_crc u_urr_crc (
         .clk       (sys_clk),
-        .rst_n     (~rst_n),
+        .rst_n     (~rst),
         .start_crc  (start_crc_impulse),
        // .crc_enable(crc_mode_enable),   // из bram (бит 2 reg_ctrl)
         .rx_valid  (rx_valid), //(rx_valid_to_urr_crc),
@@ -118,7 +137,7 @@ module uart_top (
 
     urr u_urr (
         .clk      (sys_clk),
-        .rst_n    (~rst_n),
+        .rst_n    (~rst),
         .start    (start),
         .cmd      (cmd),
         .tx_busy  (tx_busy),
@@ -130,7 +149,7 @@ module uart_top (
         .freq     (freq),
         .done     (done),
         .error    (error),
-        .dir      (dir)
+        .dir      (rs_dir_o)
         // .flag_crc(),
         // .crc_result()
     );
