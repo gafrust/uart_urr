@@ -121,7 +121,7 @@ end
             end
 
             SEND: begin
-                if (!tx_busy /*&& send_delay == 1200000*/) next_state = WAIT_RX;
+                if (!tx_busy && send_delay == 1200000) next_state = WAIT_RX;
                 //if (!tx_busy) next_state = WAIT_RX;
                 else next_state = SEND; 
             end
@@ -148,7 +148,7 @@ end
             end
 
             SEND_255: begin
-                if (!tx_busy /*&& send_delay == 1200000*/) next_state = WAIT_RX_255;//if (!tx_busy) next_state = WAIT_RX_255;
+                if (!tx_busy && send_delay == 1200000) next_state = WAIT_RX_255;//if (!tx_busy) next_state = WAIT_RX_255;
                 else next_state = SEND_255; // Явно
             end
 
@@ -239,11 +239,11 @@ end
                 end
 
                 SEND: begin
-                    //  if (send_delay < 1200000) begin
-                    //    send_delay <= send_delay + 1;
-                    //  end
+                     if (send_delay < 1200000) begin
+                        send_delay <= send_delay + 1;
+                      end
 
-                    if (/*send_delay == 1200000 &&*/ !tx_busy) begin
+                    if (send_delay == 1200000 && !tx_busy) begin
                    //if (!tx_busy) begin
                         start_urr <= 1'b1;
                         cmd_urr   <= cmd_cnt_d;
@@ -278,12 +278,12 @@ end
                 end
 
                 SEND_255: begin
-                    // if (send_delay < 1200000) begin
-                    //    send_delay <= send_delay + 1;
-                    // end
+                    if (send_delay < 1200000) begin
+                        send_delay <= send_delay + 1;
+                     end
 
                     fifo_rd_en_st <= 1'b0;
-                    if (/*send_delay == 1200000 &&*/ !tx_busy) begin
+                    if (send_delay == 1200000 && !tx_busy) begin
                     //if (!tx_busy) begin
                         start_urr <= 1'b1;
                         cmd_urr   <= 8'hFF;

@@ -1,8 +1,8 @@
 module uart_top (
     input  wire       sys_clk,      // 50 Mhz
     input  wire       rst_n,
-   (* IOB = "TRUE" *) output wire       rs_tx_o,           // UART TX
-   (* IOB = "TRUE" *) input  wire       rs_rx_i,           // UART RX
+    output wire       rs_tx_o,           // UART TX
+    input  wire       rs_rx_i,           // UART RX
    (* DONT_TOUCH = "yes" *) output wire       led,          // svetodiod
 
     // AXI BRAM interface (podkluchenie k bram_interface_urr)
@@ -43,6 +43,7 @@ module uart_top (
    (* DONT_TOUCH = "yes" *) wire        crc_running;
    (* DONT_TOUCH = "yes" *) wire        crc_match;
    
+   wire rst;
     //Vkluchenie
     assign rst = (module_enable && urr_connected_i)? rst_n : 1'b1; //module_enable
    
@@ -58,8 +59,7 @@ module uart_top (
 
 
 
-    wire rst;
-    // ---- Signali for urr (maskiruyotsa v  CRC-regime) ----
+    
    (* DONT_TOUCH = "yes" *) wire        rx_valid_to_urr;
    (* DONT_TOUCH = "yes" *) wire [7:0]  rx_data_to_urr;
    (* DONT_TOUCH = "yes" *) wire        rx_error_to_urr;
