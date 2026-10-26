@@ -1,0 +1,198 @@
+module urr_osn (
+    input  wire       clk,
+    input  wire       rst_n,
+    input  wire       start,
+    input  wire [7:0] cmd,
+
+    (* DONT_TOUCH = "yes" *) input  wire       tx_busy,
+    output reg        tx_start,
+    output reg  [7:0] tx_data,
+
+    input  wire       rx_valid,
+    input  wire [7:0] rx_data,
+    input  wire       rx_error,
+
+    output reg  [23:0] freq,
+    output reg         done,
+    output reg         error,
+    output wire        dir   // Upravlaushii vivod for RE DE max487 
+);
+
+    localparam TIMEOUT_LIMIT = 250000; // 5 ms pri 50 Mhz
+
+    localparam IDLE     = 3'd0,
+               TX_WAIT  = 3'd1,
+               RX_WAIT  = 3'd2,
+               RX_DATA  = 3'd3,
+               DONE     = 3'd4,
+               ERROR_ST = 3'd5;
+
+    reg [2:0] state, next_state;
+
+    reg [7:0]  cmd_reg;
+    reg [23:0] freq_reg;
+    reg [1:0]  byte_cnt;
+    reg [31:0] timeout_cnt;
+    reg [7:0] rx_data_latch;
+
+    reg tx_busy_prev;
+    reg rx_pending;
+
+    reg [31:0] crc_reg;
+    wire [31:0] crc_out;
+
+    assign dir = tx_busy;
+
+
+
+
+    // ---- Kombinacionnaya logika perehodov ----
+    always @(*) begin
+         next_state = state;
+        case (state)
+            IDLE: begin
+                if (start)
+                    next_state = TX_WAIT;
+            end
+            TX_WAIT: begin
+                if (!tx_busy)//tx_busy_prev && 
+                    next_state = RX_WAIT;
+            end
+            RX_WAIT: begin
+                if (rx_valid)
+                    next_state = RX_DATA;
+            end
+            RX_DATA: begin
+               if (byte_cnt == 2'd3)
+                next_state = DONE;
+               else
+                next_state = RX_DATA;
+               end
+
+            DONE: begin
+                next_state = IDLE;
+            end
+            ERROR_ST: begin
+                next_state = IDLE;
+            end
+            default: next_state = IDLE;
+        endcase
+    end
+
+always @(posedge clk) begin
+    if (rst_n) begin
+        rx_data_latch <= 8'd0;
+    end else if (rx_valid) begin
+        rx_data_latch <= rx_data;   // zashelkivaem v moment valid
+    end
+end
+
+
+
+
+
+
+    // ---- Sinhronnaya logika (po tekushemu sostoyaniu) ----
+    always @(posedge clk) begin
+        if (rst_n) begin
+            state        <= IDLE;
+            cmd_reg      <= 8'd0;
+            freq_reg     <= 24'd0;
+            byte_cnt     <= 2'd0;
+            timeout_cnt  <= 32'd0;
+            tx_start     <= 1'b0;
+            tx_data      <= 8'd0;
+            freq         <= 24'd0;
+            done         <= 1'b0;
+            error        <= 1'b0;
+            rx_pending <= 1'b0;
+            crc_reg <= 32'hF5F5F5F5;   // nachalnoe znachenie for CRC32
+            
+        end else begin
+            // Sbros impulsnih vihodov po umolchaniu
+            tx_start <= 1'b0;
+            done     <= 1'b0;
+            error    <= 1'b0;
+            tx_busy_prev <= tx_busy;
+            // ---- Zachelka rx_valid ----
+            if (rx_valid) rx_pending <= 1'b1;
+
+            // Deistvia v zavisimosti ot tekushego sostoyania
+            case (state)
+                IDLE: begin
+                    if (start) begin
+                        cmd_reg  <= cmd;
+                        tx_data  <= cmd;
+                        tx_start <= 1'b1;
+                    end
+                end
+
+                TX_WAIT: begin
+                    // Ogidaem osvobogdenia peredatchika
+                end
+
+                RX_WAIT: begin
+                    // Sbros taimauta pri vhode v eto sostoyanie
+                    if (next_state == RX_WAIT && state != RX_WAIT) begin
+                        timeout_cnt <= 32'd0;
+                        byte_cnt    <= 2'd0;   // sbros chetchika pered novim priemom
+                        rx_pending  <= 1'b0;   // gotovimsa k novomu paketu 
+                        crc_reg <= 32'hF5F5F5F5;
+                    end else begin
+                        if (timeout_cnt < TIMEOUT_LIMIT)
+                            timeout_cnt <= timeout_cnt + 1;
+                    end
+                end
+
+                RX_DATA: begin
+               if (rx_pending) begin
+                         timeout_cnt <= 32'd0;
+                       // proverka poradka
+                      if (byte_cnt != rx_data_latch[7:6]) error <= 1'b1;
+                       // zapis v freq_reg
+                      case (byte_cnt)
+                             2'd0: freq_reg[5:0]  <= rx_data_latch[5:0];
+                             2'd1: freq_reg[11:6] <= rx_data_latch[5:0];
+                             2'd2: freq_reg[17:12]<= rx_data_latch[5:0];
+                             2'd3: freq_reg[23:18]<= rx_data_latch[5:0];
+                      endcase
+                       // uvelichivaem schetchik, esli eto ne poslednii bait
+                        if (byte_cnt < 2'd3)
+                            byte_cnt <= byte_cnt + 1;
+                       // sbros pending
+                            rx_pending <= 1'b0;
+                        end else begin
+                      // taimaut, esli net dannih
+                        if (timeout_cnt < TIMEOUT_LIMIT)
+                             timeout_cnt <= timeout_cnt + 1;
+                        end
+                end
+
+
+
+               
+                DONE: begin
+                    freq <= freq_reg;
+                    done <= 1'b1;
+                    // Sbros registrov dla sledujuchego zapuska
+                    byte_cnt    <= 2'd0;
+                    freq_reg    <= 32'd0;
+                    timeout_cnt <= 32'd0;
+                end
+
+                ERROR_ST: begin
+                    error <= 1'b1;
+                    byte_cnt    <= 2'd0;
+                    freq_reg    <= 32'd0;
+                    timeout_cnt <= 32'd0;
+                end
+
+                default: ;
+            endcase
+
+            // Perehod v sledujushee sostoyanie
+            state <= next_state;
+        end
+    end
+
+endmodule

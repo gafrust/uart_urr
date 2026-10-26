@@ -8,51 +8,76 @@ quietly WaveActivateNextPane {} 0
 
 # -------------------- Сигналы верхнего уровня тестбенча --------------------
 add wave -noupdate -divider {Testbench top}
-add wave -noupdate /tb_uart_top/clk
-add wave -noupdate /tb_uart_top/rst_n
-add wave -noupdate /tb_uart_top/start
-add wave -noupdate /tb_uart_top/cmd
-add wave -noupdate /tb_uart_top/tx
-add wave -noupdate /tb_uart_top/rx
-add wave -noupdate /tb_uart_top/freq
-add wave -noupdate /tb_uart_top/done
-add wave -noupdate /tb_uart_top/error
-add wave -noupdate /tb_uart_top/crc_byte
-add wave -noupdate /tb_uart_top/crc_test_active
+add wave -noupdate /tb_urr/sys_clk
+add wave -noupdate /tb_urr/rst_p
+add wave -noupdate /tb_urr/tx
+add wave -noupdate /tb_urr/rx
+add wave -noupdate /tb_urr.crc_result_read
+add wave -noupdate /tb_urr.en_i
+add wave -noupdate /tb_urr/err_freq_code_o
+
+
+#add wave -noupdate /tb_urr/error
+#add wave -noupdate /tb_urr/crc_byte
+#add wave -noupdate /tb_urr/crc_test_active
+
+
+
+
 
 
 # -------------------- Внутренние сигналы тестируемого модуля (dut) --------------------
 add wave -noupdate -divider {DUT internal}
-add wave -noupdate /tb_uart_top/u_top/u_rx/data
-add wave -noupdate /tb_uart_top/u_top/cmd_cnt
-add wave -noupdate /tb_uart_top/u_top/tx_data
-add wave -noupdate /tb_uart_top/u_top/timer_cnt
-add wave -noupdate /tb_uart_top/u_top/tx_start
-add wave -noupdate /tb_uart_top/u_top/timer_done;     
-add wave -noupdate /tb_uart_top/u_top/tx_busy_prev;
-add wave -noupdate /tb_uart_top/u_top/rst;
+add wave -noupdate /tb_urr/u_top/u_rx/data
+add wave -noupdate /tb_urr/u_top/cmd_cnt
+add wave -noupdate /tb_urr/u_top/tx_data
+add wave -noupdate /tb_urr/u_top/timer_cnt
+add wave -noupdate /tb_urr/u_top/tx_start
+add wave -noupdate /tb_urr/u_top/timer_done;     
+add wave -noupdate /tb_urr/u_top/tx_busy_prev;
+
+add wave -noupdate /tb_urr/u_top/freq;
+add wave -noupdate /tb_urr/u_top/done;
+add wave -noupdate /tb_urr/u_top/urr_connected_i;
+add wave -noupdate /tb_urr/u_top/irq_con_o;
+add wave -noupdate /tb_urr/u_top/irq_o;
+add wave -noupdate /tb_urr/u_top/dir;
+add wave -noupdate /tb_urr/u_top/is_connected_o;
+add wave -noupdate /tb_urr/u_top/is_con_1;
+add wave -noupdate /tb_urr/u_top/is_con_2;
+add wave -noupdate /tb_urr/u_top/in_rising;
+add wave -noupdate /tb_urr/u_top/in_descending;
 
 # Группа для UART передатчика
-add wave -noupdate -group "UART_TX" /tb_uart_top/u_top/u_tx/*
+add wave -noupdate -group "uart_tx" /tb_urr/u_top/u_tx/*
 
 # Группа для UART приёмника
-add wave -noupdate -group "UART_RX" /tb_uart_top/u_top/u_rx/*
+add wave -noupdate -group "uart_rx" /tb_urr/u_top/u_rx/*
 
 # Группа для управляющего модуля URR
-add wave -noupdate -group "URR" /tb_uart_top/u_top/u_urr/*
+add wave -noupdate -group "URR" /tb_urr/u_top/u_urr/*
 
-# Группа для управляющего модуля bram
-add wave -noupdate -group "bram" /tb_uart_top/u_top/bram/*
 
 # Группа для управляющего модуля urr_crc
-add wave -noupdate -group "urr_crc" /tb_uart_top/u_top/u_urr_crc/*
+add wave -noupdate -group "urr_crc" /tb_urr/u_top/u_urr_crc/*
 
 # Группа для управляющего модуля fifo
-add wave -noupdate -group "fifo" /tb_uart_top/u_top/u_urr_crc/u_fifo/*
+add wave -noupdate -group "fifo" /tb_urr/u_top/u_urr_crc/u_fifo/*
 
-add wave -noupdate /tb_uart_top/u_top/u_urr_crc/u_fifo/mem;
+# Группа для pulse_irq_con_o
+add wave -noupdate -group "pulse_irq_con_o" /tb_urr/u_top/pulse_irq_con_o/*
 
-add wave -noupdate /tb_uart_top/u_top/u_urr_crc/collect_start_delay
+# Группа для модуля rdy_ctrl_simple
+add wave -noupdate -group "rdy_ctrl_simple" /tb_urr/u_top/rdy_ctrl_simple/*
+
+
+
+# Группа для pulse_irq_o
+add wave -noupdate -group "pulse_irq_o" /tb_urr/u_top/pulse_irq_o/*
+
+add wave -noupdate /tb_urr/u_top/u_urr_crc/u_fifo/mem;
+
+add wave -noupdate /tb_urr/u_top/u_urr_crc/collect_start_delay
 
 
 # -------------------- Настройки отображения --------------------

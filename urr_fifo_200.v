@@ -1,5 +1,4 @@
-// Synchronous FIFO with configurable depth and data width
-module fifo #(
+module urr_fifo_200 #(
     parameter DATA_WIDTH = 8,
     parameter DEPTH      = 200   // 200 bytes
 )(
@@ -11,7 +10,7 @@ module fifo #(
     output reg  [DATA_WIDTH-1:0]    rd_data,
     output wire                     full,
     output wire                     empty,
-    //output wire [ $clog2(DEPTH) : 0] count   // chislo elementov v FIFO
+    
     output wire [7:0] count   // chislo elementov v FIFO
 );
 
@@ -27,9 +26,8 @@ module fifo #(
     assign count = cnt;
 
     // Write and read pointer update
-    //always @(posedge clk or posedge rst) begin
      always @(posedge clk) begin
-        if (!rst) begin
+        if (rst) begin
             wr_ptr <= 0;
             rd_ptr <= 0;
             cnt    <= 0;

@@ -24,7 +24,7 @@
 // CRC shift direction:         right (little endian)
 // Input word width:            8 bits
 
-module crc (
+module urr_crc_module (
     input [31:0] crcIn,
     input [7:0] data,
     output [31:0] crcOut

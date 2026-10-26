@@ -1,4 +1,4 @@
-module uart_rx (
+module urr_uart_rx (
     input  wire       clk,
     input  wire       rst_n,
    (* DONT_TOUCH = "yes" *)  (* IOB = "TRUE" *) input  wire       rx,
@@ -8,7 +8,7 @@ module uart_rx (
 );
 
     localparam BAUD_RATE = 115200;
-    localparam CLK_FREQ  = /*50_000_000*/120_000_000;
+    localparam CLK_FREQ  = 60_000_000; /*50_000_000*/  //120_000_000;
     localparam BAUD_CNT  = CLK_FREQ / BAUD_RATE;
 
    (* DONT_TOUCH = "yes" *)  reg [15:0] baud_cnt;
@@ -27,7 +27,7 @@ module uart_rx (
     // Sinhronizacia i detektor spada
     //always @(posedge clk or negedge rst_n) begin
     always @(posedge clk) begin
-        if (!rst_n) begin
+        if (rst_n) begin
             rx_sync1 <= 1;
             rx_sync2 <= 1;
             rx_falling <= 0;
@@ -41,7 +41,7 @@ module uart_rx (
 
     //always @(posedge clk or negedge rst_n) begin
     always @(posedge clk) begin
-        if (!rst_n) begin
+        if (rst_n) begin
             receiving <= 0;
             baud_cnt <= 0;
             bit_cnt <= 0;

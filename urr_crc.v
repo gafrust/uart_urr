@@ -64,7 +64,7 @@ module urr_crc (
       (* DONT_TOUCH = "yes" *) reg [21:0] send_delay;   // zadergka megdu baitami
 
     // ---- Instans FIFO ----
-    fifo #(.DATA_WIDTH(8), .DEPTH(200)) u_fifo (
+    urr_fifo_200 #(.DATA_WIDTH(8), .DEPTH(200)) u_fifo (
         .clk    (clk),
         .rst    (rst_n),
         .wr_en  (fifo_wr_en),
@@ -77,7 +77,7 @@ module urr_crc (
     );
 
     // ---- Instans obertki CRC (vkluchartsa po fifo_rd_en_st) ----
-    crc_wrapper u_crc_wrap (
+    urr_crc_wrapper u_crc_wrap (
         .enable (fifo_rd_en_st),//(fifo_rd_en_st),
         .crcIn  (crc_reg),
         .data   (fifo_rd_data),//(fifo_rd_data_reg),
@@ -90,8 +90,8 @@ module urr_crc (
 //-----------------------------------------------------------------
 
 // ---- Schetchik komand (vinesen v otdelnii blok) ----
-always @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
+always @(posedge clk) begin
+    if (rst_n) begin
         cmd_cnt <= 6'd1;
     end else begin
         // Сброс в IDLE и DONE_ST
@@ -121,8 +121,8 @@ end
             end
 
             SEND: begin
-                if (!tx_busy && send_delay == 3000000) next_state = WAIT_RX;
-                //if (!tx_busy) next_state = WAIT_RX;
+                //if (!tx_busy && send_delay == 3000000) next_state = WAIT_RX;
+                if (!tx_busy) next_state = WAIT_RX;
                 else next_state = SEND; 
             end
 
@@ -148,7 +148,8 @@ end
             end
 
             SEND_255: begin
-                if (!tx_busy && send_delay == 3000000) next_state = WAIT_RX_255;//if (!tx_busy) next_state = WAIT_RX_255;
+               // if (!tx_busy && send_delay == 3000000) next_state = WAIT_RX_255;
+                  if (!tx_busy) next_state = WAIT_RX_255;
                 else next_state = SEND_255; // Явно
             end
 
@@ -182,8 +183,8 @@ end
     // ------------------------------------------------------------
     // Синхронная логика
     // ------------------------------------------------------------
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always @(posedge clk) begin
+        if (rst_n) begin
             state        <= IDLE;
           //  cmd_cnt_d      <= 6'd1;
             byte_cnt     <= 2'd0;
@@ -239,12 +240,12 @@ end
                 end
 
                 SEND: begin
-                     if (send_delay < 3000000) begin
-                        send_delay <= send_delay + 1;
-                      end
+                    //  if (send_delay < 3000000) begin
+                    //     send_delay <= send_delay + 1;
+                    //   end
 
-                    if (send_delay == 3000000 && !tx_busy) begin
-                   //if (!tx_busy) begin
+                    //if (send_delay == 3000000 && !tx_busy) begin
+                   if (!tx_busy) begin
                         start_urr <= 1'b1;
                         cmd_urr   <= cmd_cnt_d;
                         byte_cnt  <= 2'd0;
@@ -278,13 +279,13 @@ end
                 end
 
                 SEND_255: begin
-                    if (send_delay < 3000000) begin
-                        send_delay <= send_delay + 1;
-                     end
+                    // if (send_delay < 3000000) begin
+                    //     send_delay <= send_delay + 1;
+                    //  end
 
                     fifo_rd_en_st <= 1'b0;
-                    if (send_delay == 3000000 && !tx_busy) begin
-                    //if (!tx_busy) begin
+                    //if (send_delay == 3000000 && !tx_busy) begin
+                    if (!tx_busy) begin
                         start_urr <= 1'b1;
                         cmd_urr   <= 8'hFF;
                         byte_cnt_255 <= 2'd0;
@@ -309,7 +310,7 @@ end
                 COMPARE: begin
                     // Инвертируем вычисленное CRC и сравниваем с принятым
                     crc_result <= crc_reg ^ 32'hFFFFFFFF;
-                    crc_match  <= ((crc_reg ^ 32'hFFFFFFFF) == crc_received);
+                    crc_match  <= !((crc_reg ^ 32'hFFFFFFFF) == crc_received);
                 end
 
                 DONE_ST: begin
