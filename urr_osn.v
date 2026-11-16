@@ -1,7 +1,7 @@
 module urr_osn (
     input  wire       clk,
-    input  wire       rst_n,
-    input  wire       start,
+    input  wire       rst_i,
+    input  wire [1:0] start,
     input  wire [7:0] cmd,
 
     (* DONT_TOUCH = "yes" *) input  wire       tx_busy,
@@ -11,6 +11,7 @@ module urr_osn (
     input  wire       rx_valid,
     input  wire [7:0] rx_data,
     input  wire       rx_error,
+    input  wire       blok_i, 
 
     output reg  [23:0] freq,
     output reg         done,
@@ -18,7 +19,7 @@ module urr_osn (
     output wire        dir   // Upravlaushii vivod for RE DE max487 
 );
 
-    localparam TIMEOUT_LIMIT = 250000; // 5 ms pri 50 Mhz
+    localparam TIMEOUT_LIMIT = 100000; // 1 ms pri 50 Mhz
 
     localparam IDLE     = 3'd0,
                TX_WAIT  = 3'd1,
@@ -33,15 +34,19 @@ module urr_osn (
     reg [23:0] freq_reg;
     reg [1:0]  byte_cnt;
     reg [31:0] timeout_cnt;
-    reg [7:0] rx_data_latch;
+    //reg [7:0] rx_data_latch;
 
     reg tx_busy_prev;
-    reg rx_pending;
+    //reg rx_pending;
+    reg rx_valid_d;
 
     reg [31:0] crc_reg;
+    reg [21:0] send_delay;
     wire [31:0] crc_out;
+    wire rx_pulse;
 
     assign dir = tx_busy;
+    assign rx_pulse = rx_valid & ~rx_valid_d;   // 1 такт на байт
 
 
 
@@ -49,25 +54,45 @@ module urr_osn (
     // ---- Kombinacionnaya logika perehodov ----
     always @(*) begin
          next_state = state;
-        case (state)
+         case (state)
             IDLE: begin
-                if (start)
-                    next_state = TX_WAIT;
+             
+             if (start == 2'd2) begin
+               next_state = TX_WAIT;
             end
+            else begin
+              next_state = IDLE;
+        end
+    end
+
             TX_WAIT: begin
-                if (!tx_busy)//tx_busy_prev && 
+               
+                if (!tx_start && !tx_busy)
                     next_state = RX_WAIT;
             end
+           
             RX_WAIT: begin
-                if (rx_valid)
-                    next_state = RX_DATA;
-            end
-            RX_DATA: begin
-               if (byte_cnt == 2'd3)
-                next_state = DONE;
-               else
-                next_state = RX_DATA;
-               end
+                if (rx_error)
+                   next_state = ERROR_ST;
+               else if (rx_valid)
+                   next_state = RX_DATA;
+               else if (timeout_cnt >= TIMEOUT_LIMIT)
+                   next_state = ERROR_ST;
+           end
+
+           RX_DATA: begin
+               if (rx_pulse && rx_error)
+                   next_state = ERROR_ST;  
+               else if (byte_cnt == 2'd3 && rx_pulse)   // 4-й байт реально принят
+               next_state = DONE;
+               else if (timeout_cnt >= TIMEOUT_LIMIT)
+                   next_state = ERROR_ST;
+                   else
+                   next_state = RX_DATA;
+           end
+
+
+
 
             DONE: begin
                 next_state = IDLE;
@@ -79,13 +104,12 @@ module urr_osn (
         endcase
     end
 
-always @(posedge clk) begin
-    if (rst_n) begin
-        rx_data_latch <= 8'd0;
-    end else if (rx_valid) begin
-        rx_data_latch <= rx_data;   // zashelkivaem v moment valid
-    end
-end
+
+
+
+always @(posedge clk)
+    rx_valid_d <= rx_valid;
+ 
 
 
 
@@ -94,7 +118,7 @@ end
 
     // ---- Sinhronnaya logika (po tekushemu sostoyaniu) ----
     always @(posedge clk) begin
-        if (rst_n) begin
+        if (rst_i) begin
             state        <= IDLE;
             cmd_reg      <= 8'd0;
             freq_reg     <= 24'd0;
@@ -105,9 +129,17 @@ end
             freq         <= 24'd0;
             done         <= 1'b0;
             error        <= 1'b0;
-            rx_pending <= 1'b0;
+           // rx_pending <= 1'b0;
             crc_reg <= 32'hF5F5F5F5;   // nachalnoe znachenie for CRC32
-            
+            send_delay <= 22'd0;
+        end else if (blok_i) begin
+             state        <= IDLE;
+             tx_start     <= 1'b0;
+             byte_cnt     <= 2'd0;
+             timeout_cnt  <= 32'd0;
+             freq_reg     <= 24'd0;
+             done         <= 1'b0;
+             error        <= 1'b0;
         end else begin
             // Sbros impulsnih vihodov po umolchaniu
             tx_start <= 1'b0;
@@ -115,7 +147,7 @@ end
             error    <= 1'b0;
             tx_busy_prev <= tx_busy;
             // ---- Zachelka rx_valid ----
-            if (rx_valid) rx_pending <= 1'b1;
+            //if (rx_valid) rx_pending <= 1'b1;
 
             // Deistvia v zavisimosti ot tekushego sostoyania
             case (state)
@@ -128,45 +160,53 @@ end
                 end
 
                 TX_WAIT: begin
-                    // Ogidaem osvobogdenia peredatchika
+                    //  if (send_delay < 2) begin
+                    //     send_delay <= send_delay + 1;
+                    //   end
                 end
 
+                
+
+
                 RX_WAIT: begin
-                    // Sbros taimauta pri vhode v eto sostoyanie
-                    if (next_state == RX_WAIT && state != RX_WAIT) begin
-                        timeout_cnt <= 32'd0;
-                        byte_cnt    <= 2'd0;   // sbros chetchika pered novim priemom
-                        rx_pending  <= 1'b0;   // gotovimsa k novomu paketu 
-                        crc_reg <= 32'hF5F5F5F5;
-                    end else begin
-                        if (timeout_cnt < TIMEOUT_LIMIT)
-                            timeout_cnt <= timeout_cnt + 1;
+                if (rx_valid) begin
+                timeout_cnt <= 32'd0;
+                if (rx_error) begin
+                error       <= 1'b1;
+                //error       <= 1'b0;
+                end else begin 
+                    if (rx_data[7:6] != 2'd0) error <= 1'b1;
+                       freq_reg[5:0] <= rx_data[5:0];
+                       byte_cnt      <= 2'd1;           // gdem byte1
+                end
+                end else if (timeout_cnt < TIMEOUT_LIMIT) begin
+                timeout_cnt <= timeout_cnt + 1;
+                end
+                end
+
+            
+
+
+                RX_DATA: begin
+                   if (rx_pulse) begin
+                   timeout_cnt <= 32'd0;
+                   if (rx_error) begin
+                    error <= 1'b1;
+                   end else begin
+                   if (rx_data[7:6] != byte_cnt) error <= 1'b1;
+                     case (byte_cnt)
+                     2'd1: freq_reg[11:6]  <= rx_data[5:0];
+                     2'd2: freq_reg[17:12] <= rx_data[5:0];
+                     2'd3: freq_reg[23:18] <= rx_data[5:0];
+                     endcase
+                   if (byte_cnt < 2'd3)
+                     byte_cnt <= byte_cnt + 1;    // na 3-m baite stanet 3
+                   end
+                    end else if (timeout_cnt < TIMEOUT_LIMIT) begin
+                    timeout_cnt <= timeout_cnt + 1;
                     end
                 end
 
-                RX_DATA: begin
-               if (rx_pending) begin
-                         timeout_cnt <= 32'd0;
-                       // proverka poradka
-                      if (byte_cnt != rx_data_latch[7:6]) error <= 1'b1;
-                       // zapis v freq_reg
-                      case (byte_cnt)
-                             2'd0: freq_reg[5:0]  <= rx_data_latch[5:0];
-                             2'd1: freq_reg[11:6] <= rx_data_latch[5:0];
-                             2'd2: freq_reg[17:12]<= rx_data_latch[5:0];
-                             2'd3: freq_reg[23:18]<= rx_data_latch[5:0];
-                      endcase
-                       // uvelichivaem schetchik, esli eto ne poslednii bait
-                        if (byte_cnt < 2'd3)
-                            byte_cnt <= byte_cnt + 1;
-                       // sbros pending
-                            rx_pending <= 1'b0;
-                        end else begin
-                      // taimaut, esli net dannih
-                        if (timeout_cnt < TIMEOUT_LIMIT)
-                             timeout_cnt <= timeout_cnt + 1;
-                        end
-                end
 
 
 

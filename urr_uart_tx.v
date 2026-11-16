@@ -1,6 +1,6 @@
 module urr_uart_tx (
     input  wire       clk,
-    input  wire       rst_n,
+    input  wire       rst_i,
    (* DONT_TOUCH = "yes" *)  input  wire       start,      // impuls na otpravku
    (* DONT_TOUCH = "yes" *)  input  wire [7:0] data,       // bait dla otpravki
    (* DONT_TOUCH = "yes" *)  output wire       busy,       // 1 – idet peredacha
@@ -22,7 +22,7 @@ module urr_uart_tx (
     assign busy = busy_reg;
 
     always @(posedge clk) begin
-        if (rst_n) begin
+        if (rst_i) begin
             tx_reg <= 1;
             busy_reg <= 0;
             baud_cnt <= 0;
@@ -44,7 +44,7 @@ module urr_uart_tx (
                         // startovii bit uge otpravlen, dalshe dannie
                         tx_reg <= shift_reg[0];
                         shift_reg <= shift_reg >> 1;
-                    end else if (bit_cnt >= 1 && bit_cnt <= 8) begin
+                    end else if (bit_cnt >= 1 && bit_cnt <= 7) begin
                         // биты данных
                         tx_reg <= shift_reg[0];
                         shift_reg <= shift_reg >> 1;
